@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>채널 메뉴 연계 CRM 팝업 시안</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #1A1A2E; color: #fff; min-height: 100vh; padding: 32px; }
+
+  h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+  .subtitle { font-size: 14px; color: #888; margin-bottom: 32px; }
+
+  .scenarios-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+  .scenario-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .scenario-label {
+    font-size: 13px; font-weight: 700; color: #aaa;
+    text-align: center;
+    padding: 6px 14px;
+    background: #2A2A3E;
+    border-radius: 20px;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* 공통 폰 셀 */
+  .phone-shell {
+    width: 280px;
+    background: #fff;
+    border-radius: 28px;
+    border: 3px solid #333;
+    overflow: visible;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .phone-inner { border-radius: 24px; overflow: hidden; }
+  .phone-status-bar { background: #f5f5f5; padding: 10px 16px 4px; display: flex; justify-content: space-between; font-size: 10px; color: #888; }
+  .phone-topbar { background: #fff; border-bottom: 1px solid #F0F0F0; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .ch-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .ch-name { font-size: 12px; font-weight: 700; color: #111; }
+  .ch-sub { font-size: 10px; color: #888; }
+
+  .phone-screen { background: #f5f5f5; min-height: 320px; position: relative; }
+
+  /* 팝업 공통 */
+  .popup-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: flex-end;
+    border-radius: 0;
+  }
+  .popup-sheet {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    padding: 20px 18px 24px;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .popup-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+  .popup-title { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 4px; }
+  .popup-desc { font-size: 12px; color: #888; margin-bottom: 14px; line-height: 1.5; }
+
+  .popup-preview-box {
+    background: #F5F5F5;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .ppb-label { font-size: 10px; color: #888; margin-bottom: 6px; font-weight: 600; }
+  .ppb-content { font-size: 11px; color: #333; line-height: 1.6; }
+  .ppb-img { width: 100%; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 8px; }
+
+  .popup-btns { display: flex; gap: 8px; }
+  .popup-btn {
+    flex: 1; padding: 11px 8px; border-radius: 10px; border: none;
+    font-size: 13px; font-weight: 700; cursor: pointer; text-align: center;
+  }
+  .popup-btn.primary { background: #FEE500; color: #111; }
+  .popup-btn.secondary { background: #F5F5F5; color: #888; }
+  .popup-btn.primary-blue { background: #3182F6; color: #fff; }
+  .popup-btn.primary-orange { background: #FF6B35; color: #fff; }
+  .popup-btn.primary-green { background: #1CC800; color: #fff; }
+
+  /* 소식 팝업 배경 */
+  .bg-news { background: #F0F4FF; }
+  .bg-coupon { background: #FFF8E1; }
+  .bg-store { background: #F0FFF4; }
+  .bg-chat { background: #F5F5F5; }
+  .bg-reserve { background: #FFF0F5; }
+  .bg-checkout { background: #EEF4FF; }
+
+  /* 채팅방 안 메시지 표시 */
+  .chat-bubble { background: #fff; border-radius: 4px 12px 12px 12px; padding: 8px 10px; margin: 8px; max-width: 190px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .cb-name { font-size: 9px; color: #888; margin-bottom: 4px; }
+  .cb-text { font-size: 10px; color: #333; line-height: 1.5; }
+  .cb-time { font-size: 8px; color: #bbb; text-align: right; margin-top: 3px; }
+
+  /* 예약 완료 화면 */
+  .booking-done {
+    background: #fff;
+    margin: 10px;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .bd-header { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .bd-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #F5F5F5; }
+  .bd-label { font-size: 10px; color: #888; }
+  .bd-val { font-size: 10px; font-weight: 600; color: #111; }
+
+  /* 구매 완료 화면 */
+  .purchase-done {
+    background: #fff;
+    margin: 10px;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .pd-product { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .pd-img { width: 40px; height: 40px; border-radius: 8px; background: #E8F0FF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .pd-name { font-size: 11px; font-weight: 600; color: #111; }
+  .pd-price { font-size: 12px; font-weight: 800; color: #3182F6; }
+
+  /* 태그 뱃지 */
+  .seg-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .seg-badge.chat { background: #E8FFE8; color: #1CC800; }
+  .seg-badge.reserve { background: #FCE4EC; color: #E91E63; }
+  .seg-badge.buy { background: #EEF4FF; color: #3182F6; }
+
+  /* 딤처리 배경 시뮬레이션용 */
+  .app-bg {
+    padding: 12px;
+  }
+
+  /* 매장관리 팝업 */
+  .store-update-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .suc-header { font-size: 12px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .suc-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #F5F5F5; }
+  .suc-item:last-child { border-bottom: none; }
+  .suc-dot { width: 6px; height: 6px; background: #1CC800; border-radius: 50%; flex-shrink: 0; }
+  .suc-text { font-size: 10px; color: #555; }
+
+  /* 소식 내용 미리보기 */
+  .news-card {
+    background: #fff;
+    border-radius: 12px;
+    margin: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .nc-img { width: 100%; height: 80px; background: linear-gradient(135deg, #667EEA, #764BA2); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .nc-body { padding: 10px 12px; }
+  .nc-title { font-size: 12px; font-weight: 700; color: #111; }
+  .nc-text { font-size: 10px; color: #888; margin-top: 4px; line-height: 1.5; }
+
+  /* 쿠폰 카드 */
+  .coupon-card {
+    background: linear-gradient(135deg, #FF6B35, #FF8C42);
+    border-radius: 12px;
+    margin: 10px;
+    padding: 14px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .cc-title { font-size: 20px; font-weight: 800; }
+  .cc-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+  .cc-expire { font-size: 10px; opacity: 0.7; margin-top: 8px; }
+  .cc-deco { position: absolute; right: -10px; top: -10px; font-size: 60px; opacity: 0.15; }
+
+  /* 메뉴맵 */
+  .menu-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+  .menu-item {
+    background: #2A2A3E;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+  }
+  .mi-icon { font-size: 28px; margin-bottom: 8px; }
+  .mi-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .mi-type { font-size: 11px; color: #888; }
+  .mi-arrow { font-size: 16px; color: #FEE500; margin: 8px 0; }
+  .mi-trigger { font-size: 12px; color: #FEE500; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>채널 메뉴 연계 CRM — 팝업 & 화면 시안</h1>
+<div class="subtitle">파트너의 본업 운영 행동이 곧 CRM 트리거로 전환 — SDK 없이 1클릭으로 발송</div>
+
+<div class="scenarios-grid">
+
+  <!-- 1. 소식 연동 트리거 -->
+  <div class="scenario-block">
+    <div class="scenario-label">📰 소식 작성 → 메시지 발송 제안</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#6C5CE7;color:#fff;">소</div>
+          <div>
+            <div class="ch-name">소식 관리</div>
+            <div class="ch-sub">비즈니스센터</div>
+          </div>
+        </div>
+        <div class="phone-screen bg-news">
+          <div class="news-card">
+            <div class="nc-img">📸</div>
+            <div class="nc-body">
+              <div class="nc-title">8월 신제품 출시 안내 🎉</div>
+              <div class="nc-text">이번 달 새롭게 출시된 여름 컬렉션을 소개합니다. 시원한 디자인으로...</div>
+            </div>
+          </div>
+          <div class="popup-overlay">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">📢 친구에게 소식을 보낼까요?</div>
+              <div class="popup-desc">작성한 소식이 메시지 소재로 자동 변환됩니다</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">메시지 미리보기</div>
+                <div class="ppb-img" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE)">📸</div>
+                <div class="ppb-content">8월 신제품 출시 안내 🎉<br>이번 달 새롭게 출시된 여름 컬렉션을 소개합니다...</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:11px;color:#888;">
+                <span>예상 발송: <b style="color:#111;">611명</b></span>
+                <span>발송 비용: <b style="color:#FF6B35;">9,165원</b></span>
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">나중에</div>
+                <div class="popup-btn primary">지금 발송 →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 쿠폰 발행 트리거 -->
+  <div class="scenario-block">
+    <div class="scenario-label">🎟 쿠폰 등록 → 메시지 발송 제안</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#FF6B35;color:#fff;">쿠</div>
+          <div>
+            <div class="ch-name">쿠폰 관리</div>
+            <div class="ch-sub">비즈니스센터</div>
+          </div>
+        </div>
+        <div class="phone-screen bg-coupon">
+          <div class="coupon-card">
+            <div class="cc-deco">🎟</div>
+            <div class="cc-title">30% OFF</div>
+            <div class="cc-sub">전 상품 30% 할인 쿠폰</div>
+            <div class="cc-expire">유효기간: 2026.08.01 ~ 08.31</div>
+          </div>
+          <div class="popup-overlay">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">🎁 이 쿠폰을 친구에게 발송할까요?</div>
+              <div class="popup-desc">쿠폰 혜택과 만료일이 자동으로 포함됩니다</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">메시지 미리보기</div>
+                <div class="ppb-content">🎟 <b>30% 할인 쿠폰이 도착했어요!</b><br>전 상품 30% 할인 쿠폰입니다<br>📅 사용기간: ~8월 31일</div>
+              </div>
+              <div style="background:#FFF8E1;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:11px;color:#E65100;">
+                ⏰ <b>쿠폰 만료 D-3 리마인더</b>도 설정 1회로 자동 발송됩니다
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">나중에</div>
+                <div class="popup-btn primary-orange">지금 발송 →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 매장관리 트리거 -->
+  <div class="scenario-block">
+    <div class="scenario-label">🏪 매장 정보 업데이트 → 알림 발송</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#00B894;color:#fff;">매</div>
+          <div>
+            <div class="ch-name">매장 정보 관리</div>
+            <div class="ch-sub">비즈니스센터</div>
+          </div>
+        </div>
+        <div class="phone-screen bg-store">
+          <div class="store-update-card">
+            <div class="suc-header">✅ 변경 완료된 항목</div>
+            <div class="suc-item">
+              <div class="suc-dot"></div>
+              <div class="suc-text">영업시간: 10:00~22:00 → <b>10:00~21:00</b></div>
+            </div>
+            <div class="suc-item">
+              <div class="suc-dot"></div>
+              <div class="suc-text">신규 메뉴 추가: <b>여름 한정 빙수</b></div>
+            </div>
+            <div class="suc-item">
+              <div class="suc-dot"></div>
+              <div class="suc-text">대표 사진 업데이트</div>
+            </div>
+          </div>
+          <div class="popup-overlay">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">📢 변경사항을 친구에게 알릴까요?</div>
+              <div class="popup-desc">업데이트 내용이 자동으로 메시지에 포함됩니다</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">자동 생성 메시지</div>
+                <div class="ppb-content">📢 <b>매장 정보가 업데이트됐어요!</b><br>• 영업시간 변경: ~21:00<br>• 신메뉴: 여름 한정 빙수 추가 🍧</div>
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">나중에</div>
+                <div class="popup-btn primary-green">지금 알리기 →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 채팅 세그먼트 -->
+  <div class="scenario-block">
+    <div class="scenario-label">💬 채팅 문의 → 관심고객 태깅</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#0984E3;color:#fff;">채</div>
+          <div>
+            <div class="ch-name">채팅 관리</div>
+            <div class="ch-sub">비즈니스센터</div>
+          </div>
+        </div>
+        <div class="phone-screen" style="background:#F5F5F5;">
+          <div class="chat-bubble">
+            <div class="cb-name">김**님</div>
+            <div class="cb-text">안녕하세요! 이 제품 사이즈 어떻게 되나요? 가격이랑 재고도 알 수 있을까요?</div>
+            <div class="cb-time">오전 10:23</div>
+          </div>
+          <div class="popup-overlay" style="background:rgba(0,0,0,0.5);">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">👤 관심 고객 자동 태깅</div>
+              <div class="popup-desc">채팅 문의 = 구매 의향이 있다는 신호입니다</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">세그먼트 태그 부여</div>
+                <div class="ppb-content">
+                  <span class="seg-badge chat">구매관심 고객</span>
+                  <div style="margin-top:8px;font-size:11px;color:#555;">다음 메시지 발송 시<br>이 고객을 우선 타겟으로 설정할 수 있습니다</div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:#888;margin-bottom:12px;background:#F0F9FF;padding:8px 10px;border-radius:8px;">
+                현재 관심고객 세그먼트: <b style="color:#0984E3;">47명</b> 누적
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">무시</div>
+                <div class="popup-btn primary-blue">관심고객으로 등록</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 예약하기 트리거 -->
+  <div class="scenario-block">
+    <div class="scenario-label">📆 예약 완료 → 관심고객 세그먼트</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#E91E63;color:#fff;">예</div>
+          <div>
+            <div class="ch-name">예약 관리</div>
+            <div class="ch-sub">비즈니스센터</div>
+          </div>
+        </div>
+        <div class="phone-screen bg-reserve">
+          <div class="booking-done">
+            <div class="bd-header">✅ 새 예약 완료</div>
+            <div class="bd-row"><span class="bd-label">예약자</span><span class="bd-val">이**님</span></div>
+            <div class="bd-row"><span class="bd-label">서비스</span><span class="bd-val">헤어 커트 + 염색</span></div>
+            <div class="bd-row"><span class="bd-label">예약일시</span><span class="bd-val">8/15 (금) 오후 2:00</span></div>
+            <div class="bd-row"><span class="bd-label">채널 친구</span><span class="bd-val" style="color:#1CC800;">✓ 친구</span></div>
+          </div>
+          <div class="popup-overlay" style="background:rgba(0,0,0,0.45);">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">💖 방문 고객 세그먼트 등록</div>
+              <div class="popup-desc">예약 완료 = 실제 방문 의향이 확인된 고객</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">자동 세그먼트 설정</div>
+                <div class="ppb-content">
+                  <span class="seg-badge reserve">예약완료 고객</span>
+                  <div style="margin-top:8px;font-size:11px;color:#555;">방문 후 재예약 유도 메시지 발송 시<br>이 고객을 우선 타겟으로 활용합니다</div>
+                </div>
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">건너뛰기</div>
+                <div class="popup-btn" style="background:#E91E63;color:#fff;">세그먼트 등록</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 톡체크아웃/스토어 트리거 -->
+  <div class="scenario-block">
+    <div class="scenario-label">🛒 구매 완료 → 재구매 타겟 등록</div>
+    <div class="phone-shell">
+      <div class="phone-inner">
+        <div class="phone-status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-topbar">
+          <div class="ch-avatar" style="background:#3182F6;color:#fff;">주</div>
+          <div>
+            <div class="ch-name">주문 관리</div>
+            <div class="ch-sub">톡체크아웃</div>
+          </div>
+        </div>
+        <div class="phone-screen" style="background:#F0F4FF;">
+          <div class="purchase-done">
+            <div style="font-size:12px;font-weight:700;color:#1CC800;margin-bottom:10px;">✅ 결제 완료</div>
+            <div class="pd-product">
+              <div class="pd-img">👗</div>
+              <div>
+                <div class="pd-name">여름 린넨 셔츠 (화이트/M)</div>
+                <div class="pd-price">39,000원</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#888;">주문번호: ORD-20260801-1234</div>
+          </div>
+          <div class="popup-overlay" style="background:rgba(0,0,0,0.4);">
+            <div class="popup-sheet">
+              <div class="popup-handle"></div>
+              <div class="popup-title">🛍 구매 고객 세그먼트 등록</div>
+              <div class="popup-desc">구매 이력 = 검증된 관심 고객 자산</div>
+              <div class="popup-preview-box">
+                <div class="ppb-label">활용 방법</div>
+                <div class="ppb-content">
+                  <span class="seg-badge buy">구매완료 고객</span>
+                  <div style="margin-top:8px;font-size:11px;color:#555;">신상품 출시 / 시즌 이벤트 / 재구매<br>주기 도래 시 우선 타겟으로 활용</div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:#888;margin-bottom:12px;background:#EEF4FF;padding:8px 10px;border-radius:8px;">
+                현재 구매고객 세그먼트: <b style="color:#3182F6;">234명</b> 누적
+              </div>
+              <div class="popup-btns">
+                <div class="popup-btn secondary">건너뛰기</div>
+                <div class="popup-btn primary-blue">세그먼트 등록</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 요약 맵 -->
+<div style="margin-top:48px;">
+  <div style="font-size:18px;font-weight:800;margin-bottom:16px;">채널 메뉴 → CRM 전환 전체 맵</div>
+  <div class="menu-map">
+    <div class="menu-item">
+      <div class="mi-icon">📰</div>
+      <div class="mi-name">소식 작성</div>
+      <div class="mi-type">파트너 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">1클릭 발송 연동</div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-icon">🎟</div>
+      <div class="mi-name">쿠폰 발행</div>
+      <div class="mi-type">파트너 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">발송 제안 + 만료알림</div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-icon">🏪</div>
+      <div class="mi-name">매장 정보 업데이트</div>
+      <div class="mi-type">파트너 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">변경알림 + 정기메시지</div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-icon">💬</div>
+      <div class="mi-name">채팅 문의</div>
+      <div class="mi-type">유저 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">관심고객 세그먼트 태깅</div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-icon">📆</div>
+      <div class="mi-name">예약하기</div>
+      <div class="mi-type">유저 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">방문고객 세그먼트 태깅</div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-icon">🛒</div>
+      <div class="mi-name">톡체크아웃/스토어</div>
+      <div class="mi-type">유저 행동</div>
+      <div class="mi-arrow">↓</div>
+      <div class="mi-trigger">구매고객 재구매 트리거</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

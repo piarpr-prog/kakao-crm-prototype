@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웰컴 트리거 설정</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #F5F5F5; color: #111; }
+
+  .topbar {
+    background: #FEE500;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+  }
+  .topbar-logo { font-size: 22px; font-weight: 900; color: #111; }
+  .topbar-badge { background: #111; color: #FEE500; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar-nav { margin-left: auto; display: flex; gap: 24px; }
+  .topbar-nav a { text-decoration: none; color: #111; font-size: 14px; font-weight: 500; }
+  .topbar-nav a.active { font-weight: 700; border-bottom: 2px solid #111; padding-bottom: 2px; }
+
+  .breadcrumb {
+    background: #fff;
+    border-bottom: 1px solid #EBEBEB;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #888;
+  }
+  .breadcrumb span.cur { color: #111; font-weight: 600; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 32px 24px; display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+
+  /* 왼쪽 설정 폼 */
+  .form-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .card-step {
+    width: 28px; height: 28px;
+    background: #FEE500;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #111;
+    flex-shrink: 0;
+  }
+  .card-header h2 { font-size: 16px; font-weight: 700; color: #111; }
+  .card-header p { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* 시나리오 흐름 */
+  .scenario-flow { display: flex; flex-direction: column; gap: 0; }
+  .sf-node {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .sf-line-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .sf-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .sf-dot.trigger { background: #FFF9C4; }
+  .sf-dot.step1 { background: #FEE500; }
+  .sf-dot.step2c { background: #E8F5E9; }
+  .sf-dot.step2x { background: #FFF3E0; }
+  .sf-dot.end { background: #F5F5F5; }
+  .sf-line {
+    flex: 1;
+    width: 2px;
+    background: #EBEBEB;
+    min-height: 24px;
+  }
+  .sf-content { flex: 1; padding-bottom: 20px; }
+  .sf-label { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 6px; }
+
+  .sf-box {
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid #EBEBEB;
+    background: #FAFAFA;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .sf-box:hover { border-color: #FEE500; }
+  .sf-box.active-box { border-color: #FEE500; background: #FFFDE7; }
+  .sf-box-title {
+    font-size: 14px; font-weight: 700; color: #111;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sf-box-desc { font-size: 12px; color: #888; margin-top: 4px; }
+  .sf-box-tag {
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .sf-box-tag.free { background: #E8FFE8; color: #1CC800; }
+  .sf-box-tag.paid { background: #FFF0E0; color: #FF6B35; }
+
+  .branch-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .branch-box {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid #EBEBEB;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .branch-box.click { border-color: #1CC800; background: #F0FFF4; }
+  .branch-box.noclick { border-color: #FF6B35; background: #FFF8F5; }
+  .branch-box-label { font-size: 12px; font-weight: 700; }
+  .branch-box-label.c { color: #1CC800; }
+  .branch-box-label.n { color: #FF6B35; }
+  .branch-box-desc { font-size: 12px; color: #888; margin-top: 4px; }
+
+  /* 메시지 편집 */
+  .msg-editor {
+    border: 1.5px solid #FEE500;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .msg-editor-header {
+    background: #FEE500;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .msg-editor-header span { font-size: 13px; font-weight: 700; color: #111; }
+  .msg-editor-body { padding: 14px; background: #fff; }
+  .msg-preview {
+    background: #F5F5F5;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333;
+    margin-bottom: 10px;
+  }
+  .msg-preview .store-name { font-size: 11px; color: #888; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .msg-preview .store-name img { width: 20px; height: 20px; border-radius: 50%; background: #FEE500; }
+  .msg-preview .store-img {
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(135deg, #FEE500, #FFD700);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  .msg-btn-row { display: flex; gap: 6px; }
+  .msg-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1.5px solid #EBEBEB;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3182F6;
+    text-align: center;
+    cursor: pointer;
+  }
+  .msg-textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1.5px solid #EBEBEB;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    resize: vertical;
+    font-family: inherit;
+    margin-bottom: 10px;
+  }
+  .msg-textarea:focus { outline: none; border-color: #FEE500; }
+
+  /* 타이밍 설정 */
+  .timing-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .timing-btn {
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: 1.5px solid #EBEBEB;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #888;
+  }
+  .timing-btn.sel { border-color: #FEE500; background: #FFFDE7; color: #111; }
+
+  /* 오른쪽 패널 */
+  .side-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .preview-phone {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .ph-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 16px; }
+  .phone-wrap {
+    width: 220px;
+    margin: 0 auto;
+    border: 3px solid #111;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .phone-status {
+    background: #fff;
+    padding: 10px 16px 4px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #888;
+  }
+  .phone-chat-header {
+    background: #fff;
+    border-bottom: 1px solid #F0F0F0;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ph-avatar { width: 32px; height: 32px; border-radius: 50%; background: #FEE500; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .ph-channel-name { font-size: 12px; font-weight: 700; }
+  .ph-sub { font-size: 10px; color: #888; }
+  .phone-body { padding: 12px 10px; background: #F5F5F5; min-height: 280px; }
+  .phone-msg-bubble {
+    background: #fff;
+    border-radius: 4px 12px 12px 12px;
+    padding: 10px 12px;
+    margin-left: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    max-width: 180px;
+  }
+  .ph-sender { font-size: 10px; color: #888; margin-bottom: 6px; }
+  .ph-msg-img { width: 100%; height: 60px; background: linear-gradient(135deg, #FEE500, #FFD700); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .ph-msg-text { font-size: 11px; line-height: 1.5; color: #333; margin-bottom: 8px; }
+  .ph-msg-btn { width: 100%; padding: 6px; border: 1px solid #EBEBEB; border-radius: 6px; background: #fff; font-size: 10px; color: #3182F6; text-align: center; margin-bottom: 4px; }
+  .ph-time { font-size: 9px; color: #bbb; text-align: right; margin-top: 4px; }
+
+  .info-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .info-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F5F5F5; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; color: #888; }
+  .info-value { font-size: 13px; font-weight: 700; color: #111; }
+  .info-value.free { color: #1CC800; }
+  .info-value.paid { color: #FF6B35; }
+
+  .bottom-btns { display: flex; gap: 10px; }
+  .btn-save {
+    flex: 1;
+    padding: 14px;
+    background: #FEE500;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #111;
+    cursor: pointer;
+  }
+  .btn-save:hover { background: #F5DC00; }
+  .btn-cancel {
+    padding: 14px 20px;
+    background: #F5F5F5;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+  }
+
+  label { font-size: 13px; font-weight: 600; color: #444; display: block; margin-bottom: 6px; }
+  select, input[type=text] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #EBEBEB;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+  }
+  select:focus, input[type=text]:focus { outline: none; border-color: #FEE500; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">카카오비즈니스센터</span>
+  <span class="topbar-badge">파트너센터</span>
+  <nav class="topbar-nav">
+    <a href="#">채널 홈</a>
+    <a href="#">메시지</a>
+    <a href="#" class="active">CRM</a>
+    <a href="#">소식</a>
+    <a href="#">채팅</a>
+    <a href="#">분석</a>
+  </nav>
+</div>
+
+<div class="breadcrumb">
+  <a href="#" style="color:#888;text-decoration:none;">CRM</a>
+  <span>›</span>
+  <span class="cur">웰컴 트리거 설정</span>
+</div>
+
+<div class="container">
+
+  <!-- 왼쪽 설정 -->
+  <div class="form-panel">
+
+    <!-- STEP 1: 시나리오 확인 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">1</div>
+        <div>
+          <h2>시나리오 구성</h2>
+          <p>친구 추가 후 반응에 따라 자동으로 메시지가 발송됩니다</p>
+        </div>
+      </div>
+
+      <div class="scenario-flow">
+
+        <!-- 트리거 -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot trigger">🔔</div>
+            <div class="sf-line"></div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">이벤트</div>
+            <div class="sf-box active-box">
+              <div class="sf-box-title">채널 친구 추가 <span class="sf-box-tag free">무료</span></div>
+              <div class="sf-box-desc">사용자가 채널을 친구 추가하는 순간 즉시 트리거 실행</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1단계: 웰컴 즉시 -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot step1">1</div>
+            <div class="sf-line"></div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">1단계 · 즉시 발송</div>
+            <div class="sf-box active-box">
+              <div class="sf-box-title">웰컴 메시지 즉시 발송 <span class="sf-box-tag free">무료</span></div>
+              <div class="sf-box-desc">"환영합니다! 신규 가입 혜택을 확인하세요" — 친구 추가 직후 자동 발송</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 분기 -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot step1" style="background:#E8F0FF;font-size:12px;">?</div>
+            <div class="sf-line"></div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">버튼 클릭 여부 판단 (D+1~5)</div>
+            <div class="branch-row">
+              <div class="branch-box click">
+                <div class="branch-box-label c">✓ 클릭O</div>
+                <div class="branch-box-desc">D+3일 후 2단계 발송</div>
+              </div>
+              <div class="branch-box noclick">
+                <div class="branch-box-label n">✗ 미클릭</div>
+                <div class="branch-box-desc">D+2일 후 팔로업 발송</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2단계 클릭O -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot step2c">2</div>
+            <div class="sf-line"></div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">2단계 · 클릭 고객</div>
+            <div class="sf-box">
+              <div class="sf-box-title">멤버십/심화 혜택 발송 <span class="sf-box-tag paid">15원</span></div>
+              <div class="sf-box-desc">"멤버십 혜택 안내 or 첫방문 특별 할인"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3단계 미클릭 -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot step2x">3</div>
+            <div class="sf-line"></div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">3단계 · 미클릭 팔로업</div>
+            <div class="sf-box">
+              <div class="sf-box-title">재유입 유도 발송 <span class="sf-box-tag paid">15원</span></div>
+              <div class="sf-box-desc">"신규 할인 쿠폰 사용하셨나요? 지금 확인해보세요"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 종료 -->
+        <div class="sf-node">
+          <div class="sf-line-col">
+            <div class="sf-dot end">🏁</div>
+          </div>
+          <div class="sf-content">
+            <div class="sf-label">웰컴 시퀀스 종료</div>
+            <div style="font-size:12px;color:#888;padding:8px 0;">→ 이탈케어 / 정기메시지 퍼널로 자동 이동</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STEP 2: 메시지 작성 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">2</div>
+        <div>
+          <h2>메시지 작성</h2>
+          <p>각 단계별 메시지를 설정하세요 (업종별 템플릿 제공)</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label>단계 선택</label>
+        <select>
+          <option value="1">1단계 — 웰컴 즉시 발송 (무료)</option>
+          <option value="2">2단계 — 클릭O 팔로업 (15원)</option>
+          <option value="3">3단계 — 미클릭 팔로업 (15원)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label>템플릿 선택 (업종별 추천)</label>
+        <select>
+          <option>🛍 쇼핑 — "첫 구매 10% 할인 쿠폰 드립니다"</option>
+          <option>🍽 외식/카페 — "가입 기념 무료 음료 증정"</option>
+          <option>🏥 병원/뷰티 — "첫 예약 고객 특별 혜택 안내"</option>
+          <option>✏️ 교육 — "신규 가입 체험 수업 무료 제공"</option>
+          <option>📝 직접 작성</option>
+        </select>
+      </div>
+
+      <label>메시지 내용</label>
+      <textarea class="msg-textarea">안녕하세요 👋
+[채널명]에 오신 걸 환영합니다!
+
+신규 친구 특별 혜택으로
+첫 구매 10% 할인 쿠폰을 드립니다 🎁
+
+아래 버튼을 클릭해서 혜택을 확인해보세요!</textarea>
+
+      <div class="msg-btn-row" style="gap:8px;margin-top:8px;">
+        <div style="flex:1;">
+          <label>버튼 1</label>
+          <input type="text" value="혜택 확인하기 →">
+        </div>
+        <div style="flex:1;">
+          <label>버튼 2 (선택)</label>
+          <input type="text" placeholder="버튼 추가 (선택)">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: 타이밍 설정 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">3</div>
+        <div>
+          <h2>타이밍 설정</h2>
+          <p>클릭 고객 2단계 발송 시점을 선택하세요 (D+1~5일 중 선택)</p>
+        </div>
+      </div>
+      <label style="margin-bottom:10px;">발송 시점 선택 (친구 추가 후 N일 뒤)</label>
+      <div class="timing-row">
+        <div class="timing-btn">D+1</div>
+        <div class="timing-btn">D+2</div>
+        <div class="timing-btn sel">D+3</div>
+        <div class="timing-btn">D+4</div>
+        <div class="timing-btn">D+5</div>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:#FFFDE7;border-radius:10px;font-size:12px;color:#888;">
+        💡 <strong style="color:#111;">D+3이 추천 시점입니다</strong> — 웰컴 메시지 열람률이 D-day(82.9%)에서 D+3(72.7%)으로 유지되며, 이후 급격히 감소합니다
+      </div>
+    </div>
+
+    <!-- 저장 버튼 -->
+    <div class="bottom-btns">
+      <button class="btn-cancel">취소</button>
+      <button class="btn-save">저장하고 트리거 시작 →</button>
+    </div>
+
+  </div>
+
+  <!-- 오른쪽 패널 -->
+  <div class="side-panel">
+
+    <!-- 폰 미리보기 -->
+    <div class="preview-phone">
+      <div class="ph-title">발송 미리보기</div>
+      <div class="phone-wrap">
+        <div class="phone-status">
+          <span>9:41</span>
+          <span>●●●</span>
+        </div>
+        <div class="phone-chat-header">
+          <div class="ph-avatar">🛍</div>
+          <div>
+            <div class="ph-channel-name">내 쇼핑몰</div>
+            <div class="ph-sub">채널 메시지</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div style="font-size:10px;color:#bbb;text-align:center;padding:8px 0;">오늘</div>
+          <div class="phone-msg-bubble">
+            <div class="ph-sender">내 쇼핑몰</div>
+            <div class="ph-msg-img">🎁</div>
+            <div class="ph-msg-text">안녕하세요 👋<br>내 쇼핑몰에 오신 걸 환영합니다!<br><br>신규 친구 특별 혜택으로<br>첫 구매 <b>10% 할인</b> 쿠폰을 드립니다 🎁</div>
+            <div class="ph-msg-btn">혜택 확인하기 →</div>
+            <div class="ph-time">방금</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비용/발송 정보 -->
+    <div class="info-card">
+      <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:14px;">예상 발송 정보</div>
+      <div class="info-row">
+        <span class="info-label">현재 친구 수</span>
+        <span class="info-value">2,341명</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">1단계 (즉시·무료)</span>
+        <span class="info-value free">무료</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">2단계 예상 (월)</span>
+        <span class="info-value paid">~367건 · 5,505원</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">3단계 예상 (월)</span>
+        <span class="info-value paid">~1,974건 · 29,610원</span>
+      </div>
+      <div class="info-row" style="border-top:2px solid #F0F0F0;padding-top:10px;margin-top:4px;">
+        <span class="info-label" style="font-weight:700;color:#111;">월 예상 총 비용</span>
+        <span class="info-value" style="color:#111;font-size:16px;">35,115원</span>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:8px;">* 신규 친구 추가 수에 따라 변동</div>
+    </div>
+
+    <!-- 팁 카드 -->
+    <div class="info-card" style="background:#FFFDE7;border:1.5px solid #FEE500;">
+      <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:10px;">💡 효과 데이터</div>
+      <div style="font-size:12px;color:#555;line-height:1.7;">
+        웰컴 메시지는 일반 유상 메시지 대비<br>
+        <b style="color:#111;">열람률 +25.5%p ↑</b><br>
+        <b style="color:#111;">클릭률 +8%p ↑</b><br><br>
+        채널 추가 직후가 반응률이 가장 높습니다
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

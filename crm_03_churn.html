@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이탈케어 트리거 설정</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #F5F5F5; color: #111; }
+
+  .topbar { background: #FEE500; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 12px; }
+  .topbar-logo { font-size: 22px; font-weight: 900; color: #111; }
+  .topbar-badge { background: #111; color: #FEE500; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar-nav { margin-left: auto; display: flex; gap: 24px; }
+  .topbar-nav a { text-decoration: none; color: #111; font-size: 14px; font-weight: 500; }
+  .topbar-nav a.active { font-weight: 700; border-bottom: 2px solid #111; }
+
+  .breadcrumb { background: #fff; border-bottom: 1px solid #EBEBEB; padding: 14px 24px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888; }
+  .breadcrumb span.cur { color: #111; font-weight: 600; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 32px 24px; display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+
+  .form-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #F0F0F0; }
+  .card-step { width: 28px; height: 28px; background: #FF6B35; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .card-header h2 { font-size: 16px; font-weight: 700; color: #111; }
+  .card-header p { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* 이탈케어 대상 현황 */
+  .churn-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .churn-stat-card {
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .churn-stat-card.s6 { background: linear-gradient(135deg, #FFF3E0, #FFE0CC); border: 1.5px solid #FFCC80; }
+  .churn-stat-card.s12 { background: linear-gradient(135deg, #FCE4EC, #F8BBD0); border: 1.5px solid #F48FB1; }
+  .csc-label { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 6px; }
+  .csc-value { font-size: 26px; font-weight: 800; }
+  .csc-value.o { color: #E65100; }
+  .csc-value.r { color: #880E4F; }
+  .csc-sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .csc-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 32px; opacity: 0.3; }
+
+  /* 단계 카드 */
+  .stage-cards { display: flex; flex-direction: column; gap: 16px; }
+  .stage-card {
+    border-radius: 14px;
+    border: 2px solid #EBEBEB;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .stage-card.active { border-color: #FF6B35; }
+
+  .stage-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+  }
+  .stage-header.s1 { background: linear-gradient(135deg, #FFF3E0, #FFF8F5); }
+  .stage-header.s2 { background: linear-gradient(135deg, #FCE4EC, #FFF5F7); }
+  .sh-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+  .sh-num.n1 { background: #FF6B35; color: #fff; }
+  .sh-num.n2 { background: #E91E63; color: #fff; }
+  .sh-info { flex: 1; }
+  .sh-title { font-size: 15px; font-weight: 700; color: #111; }
+  .sh-cond { font-size: 12px; color: #888; margin-top: 3px; }
+  .sh-target { font-size: 14px; font-weight: 700; color: #FF6B35; }
+  .sh-toggle {
+    width: 44px; height: 24px; background: #FF6B35; border-radius: 12px;
+    position: relative; cursor: pointer;
+  }
+  .sh-toggle::after {
+    content: ''; width: 20px; height: 20px; background: #fff;
+    border-radius: 50%; position: absolute; top: 2px; right: 2px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .stage-body { padding: 16px 20px; background: #fff; border-top: 1px solid #F5F5F5; }
+
+  label { font-size: 13px; font-weight: 600; color: #444; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    min-height: 90px;
+    border: 1.5px solid #EBEBEB;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+  }
+  textarea:focus { outline: none; border-color: #FF6B35; }
+  input[type=text] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #EBEBEB;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    margin-bottom: 8px;
+  }
+  input[type=text]:focus { outline: none; border-color: #FF6B35; }
+
+  .offer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .offer-tag {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1.5px solid #EBEBEB;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .offer-tag.sel { border-color: #FF6B35; background: #FFF3E0; }
+  .offer-tag-title { font-size: 12px; font-weight: 700; color: #111; }
+  .offer-tag-sub { font-size: 11px; color: #888; margin-top: 2px; }
+
+  /* 플로우 다이어그램 */
+  .flow-diagram {
+    background: #FAFAFA;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .fd-row { display: flex; align-items: center; gap: 0; }
+  .fd-box {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    flex: 1;
+  }
+  .fd-box.gray { background: #EBEBEB; color: #888; }
+  .fd-box.orange { background: #FF6B35; color: #fff; }
+  .fd-box.red { background: #E91E63; color: #fff; }
+  .fd-box.green { background: #E8FFE8; color: #1CC800; border: 1px solid #A5D6A7; }
+  .fd-box.stop { background: #F5F5F5; color: #bbb; border: 1px dashed #ddd; }
+  .fd-arrow { font-size: 14px; color: #ccc; padding: 0 4px; flex-shrink: 0; }
+  .fd-label { font-size: 10px; color: #aaa; text-align: center; margin-top: 4px; }
+
+  /* 안전장치 옵션 */
+  .safety-section { margin-top: 20px; }
+  .safety-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .safety-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1.5px solid #EBEBEB;
+    margin-bottom: 8px;
+    background: #FAFAFA;
+  }
+  .si-icon2 { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .si-text h4 { font-size: 13px; font-weight: 700; color: #111; }
+  .si-text p { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.5; }
+  .si-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #1CC800;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: #fff;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .side-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .preview-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+  .churn-timeline {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .ct-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 14px; }
+  .ct-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .ct-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .ct-dot.active { background: #FF6B35; }
+  .ct-dot.inactive { background: #ddd; }
+  .ct-info { flex: 1; }
+  .ct-when { font-size: 11px; color: #888; }
+  .ct-what { font-size: 13px; font-weight: 600; color: #111; }
+  .ct-count { font-size: 12px; font-weight: 700; color: #FF6B35; }
+
+  .bar-chart { margin-top: 16px; }
+  .bc-row { margin-bottom: 8px; }
+  .bc-label-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .bc-label { font-size: 11px; color: #888; }
+  .bc-val { font-size: 11px; font-weight: 700; }
+  .bc-track { height: 8px; background: #F0F0F0; border-radius: 4px; }
+  .bc-fill { height: 8px; border-radius: 4px; background: #FF6B35; }
+
+  .btn-save { width: 100%; padding: 14px; background: #FF6B35; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; color: #fff; cursor: pointer; margin-top: 4px; }
+  .btn-save:hover { background: #E85E2A; }
+  .btn-cancel { width: 100%; padding: 12px; background: #F5F5F5; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; margin-top: 8px; }
+
+  .info-box { background: #FFF3E0; border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  .info-box p { font-size: 12px; color: #E65100; line-height: 1.6; }
+
+  /* 친구 이탈 그래프 참고 */
+  .chart-reference {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .chart-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 12px; }
+  .block-chart { display: flex; flex-direction: column; gap: 6px; }
+  .bk-row { display: flex; align-items: center; gap: 8px; }
+  .bk-label { font-size: 11px; color: #888; width: 60px; text-align: right; flex-shrink: 0; }
+  .bk-track { flex: 1; height: 20px; background: #F5F5F5; border-radius: 4px; overflow: hidden; }
+  .bk-fill { height: 100%; background: #FF6B35; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+  .bk-pct { font-size: 10px; font-weight: 700; color: #fff; }
+  .bk-fill.hi { background: #E91E63; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">카카오비즈니스센터</span>
+  <span class="topbar-badge">파트너센터</span>
+  <nav class="topbar-nav">
+    <a href="#">채널 홈</a>
+    <a href="#">메시지</a>
+    <a href="#" class="active">CRM</a>
+    <a href="#">소식</a>
+    <a href="#">채팅</a>
+    <a href="#">분석</a>
+  </nav>
+</div>
+
+<div class="breadcrumb">
+  <a href="#" style="color:#888;text-decoration:none;">CRM</a>
+  <span>›</span>
+  <span class="cur">이탈케어 설정</span>
+</div>
+
+<div class="container">
+
+  <div class="form-panel">
+
+    <!-- 이탈케어 대상 현황 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">📊</div>
+        <div>
+          <h2>내 채널 이탈케어 대상</h2>
+          <p>이탈 고객을 단계적으로 재활성화합니다</p>
+        </div>
+      </div>
+      <div class="churn-stat-grid">
+        <div class="churn-stat-card s6">
+          <div class="csc-label">1단계 대상 (6개월 미반응)</div>
+          <div class="csc-value o">1,247명</div>
+          <div class="csc-sub">전체 친구의 53.2%</div>
+          <div class="csc-icon">😶</div>
+        </div>
+        <div class="churn-stat-card s12">
+          <div class="csc-label">2단계 대상 (12개월 미반응)</div>
+          <div class="csc-value r">794명</div>
+          <div class="csc-sub">전체 친구의 33.9%</div>
+          <div class="csc-icon">💤</div>
+        </div>
+      </div>
+      <div style="background:#FFF8E1;border-radius:10px;padding:12px 14px;font-size:12px;color:#555;line-height:1.6;">
+        💡 채널 친구는 파트너사와 카카오의 핵심 자산입니다. B2C 기업의 경우 <b>고객 획득비용보다 재활성화 비용이 훨씬 저렴</b>합니다. 지금 이탈케어를 시작해보세요!
+      </div>
+    </div>
+
+    <!-- 이탈케어 시나리오 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step" style="font-size:16px;background:transparent;color:#111;width:auto;">🔧</div>
+        <div>
+          <h2>이탈케어 시나리오 설정</h2>
+          <p>단계별 혜택과 메시지를 설정하세요</p>
+        </div>
+      </div>
+
+      <div class="stage-cards">
+
+        <!-- 1단계 -->
+        <div class="stage-card active">
+          <div class="stage-header s1">
+            <div class="sh-num n1">1</div>
+            <div class="sh-info">
+              <div class="sh-title">1단계 — 6개월 미열람/미클릭</div>
+              <div class="sh-cond">마지막 반응으로부터 6개월 경과 시 자동 발송</div>
+            </div>
+            <div class="sh-target">1,247명 대상</div>
+            <div class="sh-toggle"></div>
+          </div>
+          <div class="stage-body">
+            <label>메시지 유형 (혜택 강도: 중)</label>
+            <div class="offer-row">
+              <div class="offer-tag sel">
+                <div class="offer-tag-title">💰 적립금</div>
+                <div class="offer-tag-sub">1만원 적립금 증정</div>
+              </div>
+              <div class="offer-tag">
+                <div class="offer-tag-title">🎟 쿠폰</div>
+                <div class="offer-tag-sub">20~30% 할인 쿠폰</div>
+              </div>
+              <div class="offer-tag">
+                <div class="offer-tag-title">🎁 사은품</div>
+                <div class="offer-tag-sub">특별 증정품 제공</div>
+              </div>
+              <div class="offer-tag">
+                <div class="offer-tag-title">✏️ 직접 작성</div>
+                <div class="offer-tag-sub">메시지 자유 작성</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;">
+              <label>메시지 내용</label>
+              <textarea>안녕하세요 😊
+오랜만에 연락드립니다!
+
+고객님을 기다리며 특별한 혜택을 준비했어요.
+
+💝 고객님께만 드리는 1만원 적립금
+지금 바로 사용하실 수 있습니다!
+
+혜택 유효기간: 발송 후 7일</textarea>
+              <input type="text" value="지금 혜택 사용하기 →" placeholder="버튼 텍스트">
+            </div>
+
+            <div class="info-box">
+              <p>📌 <b>발송 비용</b>: 1,247명 × 15원 = <b>18,705원</b> (1회 발송 기준)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2단계 -->
+        <div class="stage-card active">
+          <div class="stage-header s2">
+            <div class="sh-num n2">2</div>
+            <div class="sh-info">
+              <div class="sh-title">2단계 — 12개월 미열람/미클릭</div>
+              <div class="sh-cond">1단계 미반응 후 추가 6개월 경과 시 자동 발송</div>
+            </div>
+            <div class="sh-target" style="color:#E91E63;">794명 대상</div>
+            <div class="sh-toggle" style="background:#E91E63;"></div>
+          </div>
+          <div class="stage-body">
+            <label>메시지 유형 (혜택 강도: 강 — 마지막 기회)</label>
+            <div class="offer-row">
+              <div class="offer-tag">
+                <div class="offer-tag-title">🔥 시크릿 쿠폰</div>
+                <div class="offer-tag-sub">50~70% 파격 할인</div>
+              </div>
+              <div class="offer-tag sel" style="border-color:#E91E63;background:#FFF0F5;">
+                <div class="offer-tag-title">💎 VIP 혜택</div>
+                <div class="offer-tag-sub">70% + 무료배송</div>
+              </div>
+              <div class="offer-tag">
+                <div class="offer-tag-title">🎁 특별 사은품</div>
+                <div class="offer-tag-sub">고가 증정품</div>
+              </div>
+              <div class="offer-tag">
+                <div class="offer-tag-title">✏️ 직접 작성</div>
+                <div class="offer-tag-sub">메시지 자유 작성</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;">
+              <label>메시지 내용</label>
+              <textarea>안녕하세요 🙏
+정말 오랫동안 못 뵈었네요...
+
+고객님이 보고 싶어서 마지막으로 연락드립니다.
+
+🎁 고객님께만 드리는 시크릿 70% 쿠폰
+단 한 번만 제공되는 특별 혜택입니다
+
+유효기간: 발송 후 3일 (정말 마지막 기회예요!)</textarea>
+              <input type="text" value="시크릿 쿠폰 받기 →" placeholder="버튼 텍스트">
+            </div>
+
+            <div class="info-box" style="background:#FCE4EC;">
+              <p style="color:#880E4F;">📌 <b>발송 비용</b>: 794명 × 15원 = <b>11,910원</b> / 2단계 무반응 시 자동 발송 중단</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 프로세스 플로우 -->
+      <div class="flow-diagram" style="margin-top:20px;">
+        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:12px;">발송 프로세스 흐름</div>
+        <div class="fd-row">
+          <div class="fd-box gray">6개월<br>미반응</div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-box orange">1단계<br>발송</div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-box green">반응O<br>종료</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;margin-right:0;">
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-right:32px;">반응X → 6개월 대기</div>
+        </div>
+        <div class="fd-row" style="margin-top:8px;">
+          <div class="fd-box gray">12개월<br>미반응</div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-box red">2단계<br>발송</div>
+          <div class="fd-arrow">→</div>
+          <div class="fd-box green">반응O<br>종료</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-right:8px;">반응X → 자동 발송 중단 (수신거부 필터)</div>
+        </div>
+      </div>
+
+      <!-- 안전장치 -->
+      <div class="safety-section">
+        <div class="safety-title">🛡 친구 이탈 역효과 방지 안전장치</div>
+        <div class="safety-item">
+          <div class="si-icon2">🚫</div>
+          <div class="si-text">
+            <h4>수신거부 자동 필터</h4>
+            <p>수신거부 이력이 있는 친구에게는 이탈케어 메시지가 자동으로 차단됩니다</p>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+        <div class="safety-item">
+          <div class="si-icon2">⏸</div>
+          <div class="si-text">
+            <h4>2단계 무반응 시 자동 중단</h4>
+            <p>2단계에서도 반응이 없으면 추가 발송을 완전 중단해 채널 차단을 방지합니다</p>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+        <div class="safety-item">
+          <div class="si-icon2">🕐</div>
+          <div class="si-text">
+            <h4>쿨다운 7일 설정</h4>
+            <p>다른 트리거(웰컴, 정기메시지)와의 충돌을 방지하는 7일 쿨다운이 자동 적용됩니다</p>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-save">저장하고 이탈케어 시작 →</button>
+    <button class="btn-cancel">취소</button>
+
+  </div>
+
+  <!-- 오른쪽 패널 -->
+  <div class="side-panel">
+
+    <!-- 예상 비용 -->
+    <div class="preview-card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;">📊 예상 발송/비용</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F5F5F5;">
+          <span style="font-size:12px;color:#888;">1단계 대상</span>
+          <span style="font-size:13px;font-weight:700;">1,247명</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F5F5F5;">
+          <span style="font-size:12px;color:#888;">1단계 비용</span>
+          <span style="font-size:13px;font-weight:700;color:#FF6B35;">18,705원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F5F5F5;">
+          <span style="font-size:12px;color:#888;">2단계 대상</span>
+          <span style="font-size:13px;font-weight:700;">794명</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:2px solid #E91E63;">
+          <span style="font-size:12px;color:#888;">2단계 비용</span>
+          <span style="font-size:13px;font-weight:700;color:#E91E63;">11,910원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;">
+          <span style="font-size:13px;font-weight:700;color:#111;">총 예상 비용</span>
+          <span style="font-size:17px;font-weight:800;color:#111;">30,615원</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#bbb;margin-top:4px;">* 월 1회 발송 기준 / 실제 반응률에 따라 변동</div>
+    </div>
+
+    <!-- 이탈케어 타임라인 -->
+    <div class="churn-timeline">
+      <div class="ct-title">⏱ 이탈케어 타임라인</div>
+      <div class="ct-row">
+        <div class="ct-dot active"></div>
+        <div class="ct-info">
+          <div class="ct-when">D-day (친구 추가)</div>
+          <div class="ct-what">웰컴 메시지 발송</div>
+        </div>
+      </div>
+      <div style="border-left:2px dashed #EBEBEB;margin-left:4px;padding-left:14px;padding-top:2px;padding-bottom:2px;">
+        <div style="font-size:10px;color:#ccc;">~ 6개월 활동 기간</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-dot active"></div>
+        <div class="ct-info">
+          <div class="ct-when">친구 추가 후 6개월</div>
+          <div class="ct-what" style="color:#FF6B35;">이탈케어 1단계 발송</div>
+        </div>
+        <div class="ct-count">1,247명</div>
+      </div>
+      <div style="border-left:2px dashed #EBEBEB;margin-left:4px;padding-left:14px;padding-top:2px;padding-bottom:2px;">
+        <div style="font-size:10px;color:#ccc;">미반응 시 추가 6개월 대기</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-dot active"></div>
+        <div class="ct-info">
+          <div class="ct-when">친구 추가 후 12개월</div>
+          <div class="ct-what" style="color:#E91E63;">이탈케어 2단계 발송</div>
+        </div>
+        <div class="ct-count" style="color:#E91E63;">794명</div>
+      </div>
+      <div style="border-left:2px dashed #EBEBEB;margin-left:4px;padding-left:14px;padding-top:2px;padding-bottom:2px;">
+        <div style="font-size:10px;color:#ccc;">미반응 시 발송 자동 중단</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-dot inactive"></div>
+        <div class="ct-info">
+          <div class="ct-when" style="color:#bbb;">이탈케어 종료</div>
+          <div class="ct-what" style="color:#bbb;">수신거부 처리 또는 재활성</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 차단율 차트 -->
+    <div class="chart-reference">
+      <div class="chart-title">📉 친구추가 시점별 차단율</div>
+      <div class="block-chart">
+        <div class="bc-row">
+          <div class="bk-row">
+            <div class="bk-label">D-day</div>
+            <div class="bk-track">
+              <div class="bk-fill hi" style="width:27.5%"><span class="bk-pct">27.5%</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="bc-row">
+          <div class="bk-row">
+            <div class="bk-label">D+1</div>
+            <div class="bk-track"><div class="bk-fill" style="width:2.6%"><span class="bk-pct">2.6%</span></div></div>
+          </div>
+        </div>
+        <div class="bc-row">
+          <div class="bk-row">
+            <div class="bk-label">D+7~30</div>
+            <div class="bk-track"><div class="bk-fill" style="width:6.9%"><span class="bk-pct">6.9%</span></div></div>
+          </div>
+        </div>
+        <div class="bc-row">
+          <div class="bk-row">
+            <div class="bk-label">D+91~180</div>
+            <div class="bk-track"><div class="bk-fill" style="width:15.2%"><span class="bk-pct">15.2%</span></div></div>
+          </div>
+        </div>
+        <div class="bc-row">
+          <div class="bk-row">
+            <div class="bk-label">D+181~365</div>
+            <div class="bk-track"><div class="bk-fill hi" style="width:19.5%"><span class="bk-pct">19.5%</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px;">* D-day 차단은 실제 메시지를 보고 차단, 이후 구간은 자연 이탈</div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

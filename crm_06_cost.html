@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비용 미리보기 & 발송 확인</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #F5F5F5; color: #111; }
+
+  .topbar { background: #FEE500; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 12px; }
+  .topbar-logo { font-size: 22px; font-weight: 900; color: #111; }
+  .topbar-badge { background: #111; color: #FEE500; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar-nav { margin-left: auto; display: flex; gap: 24px; }
+  .topbar-nav a { text-decoration: none; color: #111; font-size: 14px; font-weight: 500; }
+  .topbar-nav a.active { font-weight: 700; border-bottom: 2px solid #111; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  .page-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: #888; margin-bottom: 32px; }
+
+  /* 비용 시뮬레이터 메인 카드 */
+  .simulator-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+  }
+
+  .sim-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .sim-icon { width: 44px; height: 44px; background: #FEE500; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .sim-header h2 { font-size: 18px; font-weight: 700; }
+  .sim-header p { font-size: 13px; color: #888; margin-top: 3px; }
+
+  /* 슬라이더 */
+  .slider-section { margin-bottom: 24px; }
+  .slider-label-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .slider-label { font-size: 14px; font-weight: 600; color: #444; }
+  .slider-value { font-size: 16px; font-weight: 800; color: #3182F6; }
+  input[type=range] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    background: linear-gradient(to right, #3182F6 0%, #3182F6 46%, #E0E0E0 46%);
+    border-radius: 3px;
+    outline: none;
+    margin-bottom: 6px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #3182F6;
+    box-shadow: 0 2px 8px rgba(49,130,246,0.4);
+    cursor: pointer;
+  }
+  .slider-range { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; }
+
+  /* 비용 결과 */
+  .cost-result {
+    background: linear-gradient(135deg, #111 0%, #2D2D2D 100%);
+    border-radius: 16px;
+    padding: 24px;
+    color: #fff;
+    margin-bottom: 24px;
+  }
+  .cr-label { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+  .cr-main { font-size: 40px; font-weight: 900; color: #FEE500; }
+  .cr-unit { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.7); margin-left: 6px; }
+  .cr-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+
+  .cr-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .crb-item { text-align: center; }
+  .crb-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+  .crb-val { font-size: 18px; font-weight: 800; color: #fff; }
+
+  /* 트리거별 비용 분해 */
+  .trigger-cost-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+  .tc-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-left: 4px solid #ddd;
+  }
+  .tc-row.w { border-left-color: #FEE500; }
+  .tc-row.c { border-left-color: #FF6B35; }
+  .tc-row.r { border-left-color: #3182F6; }
+  .tc-icon { font-size: 20px; width: 36px; text-align: center; flex-shrink: 0; }
+  .tc-info { flex: 1; }
+  .tc-name { font-size: 14px; font-weight: 700; color: #111; }
+  .tc-detail { font-size: 12px; color: #888; margin-top: 2px; }
+  .tc-cost { text-align: right; }
+  .tc-cost-val { font-size: 18px; font-weight: 800; }
+  .tc-cost-val.free { color: #1CC800; }
+  .tc-cost-val.paid { color: #FF6B35; }
+  .tc-cost-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* 발송 상한 설정 */
+  .limit-card {
+    background: #FFF8E1;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1.5px solid #FDD835;
+    margin-bottom: 24px;
+  }
+  .lc-header { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .lc-desc { font-size: 12px; color: #888; margin-bottom: 16px; }
+  .lc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .lc-input-group label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 6px; }
+  .lc-input-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #EBEBEB;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    color: #111;
+  }
+  .lc-input-group input:focus { outline: none; border-color: #FDD835; }
+
+  /* 최종 확인 모달 스타일 */
+  .confirm-section { background: #fff; border-radius: 20px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .confirm-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .confirm-checklist { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #F8F8F8;
+    border-radius: 12px;
+  }
+  .check-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #E8FFE8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .check-icon.warn { background: #FFF3E0; }
+  .check-text { flex: 1; }
+  .check-main { font-size: 13px; font-weight: 600; color: #111; }
+  .check-sub { font-size: 11px; color: #888; margin-top: 2px; }
+
+  .confirm-final {
+    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+    border-radius: 16px;
+    padding: 20px 24px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cf-left h3 { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+  .cf-amount { font-size: 28px; font-weight: 900; color: #FEE500; }
+  .cf-btn {
+    background: #FEE500;
+    color: #111;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cf-btn:hover { background: #F5DC00; }
+
+  .cancel-btn {
+    width: 100%;
+    padding: 13px;
+    background: #F5F5F5;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+  }
+
+  /* 월렛 잔액 표시 */
+  .wallet-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .wb-icon { font-size: 20px; }
+  .wb-label { font-size: 13px; color: #888; flex: 1; }
+  .wb-balance { font-size: 16px; font-weight: 800; color: #111; }
+  .wb-add { font-size: 12px; font-weight: 700; color: #3182F6; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">카카오비즈니스센터</span>
+  <span class="topbar-badge">파트너센터</span>
+  <nav class="topbar-nav">
+    <a href="#">채널 홈</a>
+    <a href="#">메시지</a>
+    <a href="#" class="active">CRM</a>
+    <a href="#">소식</a>
+    <a href="#">채팅</a>
+    <a href="#">분석</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div class="page-title">발송 비용 미리보기 & 확인</div>
+  <div class="page-sub">발송 전 비용을 미리 확인하고, 발송 상한을 설정해 과금 쇼크를 방지하세요</div>
+
+  <!-- 월렛 잔액 -->
+  <div class="wallet-bar">
+    <div class="wb-icon">💳</div>
+    <div class="wb-label">카카오 비즈 월렛 잔액</div>
+    <div class="wb-balance">125,000원</div>
+    <a href="#" class="wb-add">+ 충전하기</a>
+  </div>
+
+  <!-- 비용 시뮬레이터 -->
+  <div class="simulator-card">
+    <div class="sim-header">
+      <div class="sim-icon">🧮</div>
+      <div>
+        <h2>비용 시뮬레이터</h2>
+        <p>친구 수를 조정해 예상 비용을 미리 계산해보세요</p>
+      </div>
+    </div>
+
+    <div class="slider-section">
+      <div class="slider-label-row">
+        <span class="slider-label">채널 친구 수</span>
+        <span class="slider-value" id="friendCount">611명</span>
+      </div>
+      <input type="range" min="100" max="10000" value="611" step="1"
+             oninput="updateCost(this.value)" id="friendSlider">
+      <div class="slider-range">
+        <span>100명</span>
+        <span>1,000명</span>
+        <span>5,000명</span>
+        <span>10,000명</span>
+      </div>
+    </div>
+
+    <!-- 비용 결과 -->
+    <div class="cost-result">
+      <div class="cr-label">월 전체 트리거 예상 비용</div>
+      <div>
+        <span class="cr-main" id="totalCost">18,780</span>
+        <span class="cr-unit">원 / 월</span>
+      </div>
+      <div class="cr-sub" id="costSub">611명 기준 · 건당 15원 · 웰컴+이탈케어+정기 합산</div>
+      <div class="cr-breakdown">
+        <div class="crb-item">
+          <div class="crb-label">웰컴 (유상)</div>
+          <div class="crb-val" id="welcomeCost">4,890원</div>
+        </div>
+        <div class="crb-item">
+          <div class="crb-label">이탈케어</div>
+          <div class="crb-val" id="churnCost">4,665원</div>
+        </div>
+        <div class="crb-item">
+          <div class="crb-label">정기메시지</div>
+          <div class="crb-val" id="regularCost">9,165원</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 트리거별 비용 상세 -->
+  <div class="trigger-cost-list">
+    <div class="tc-row w">
+      <div class="tc-icon">👋</div>
+      <div class="tc-info">
+        <div class="tc-name">웰컴 트리거 (유상 2·3단계)</div>
+        <div class="tc-detail">클릭O: 96명 × 15원 + 미클릭: 230명 × 15원</div>
+      </div>
+      <div class="tc-cost">
+        <div class="tc-cost-val paid" id="wcDetail">4,890원</div>
+        <div class="tc-cost-sub">1단계 무료 제외</div>
+      </div>
+    </div>
+    <div class="tc-row c">
+      <div class="tc-icon">💔</div>
+      <div class="tc-info">
+        <div class="tc-name">이탈케어 1·2단계</div>
+        <div class="tc-detail">1단계: 198명 + 2단계: 113명 × 15원</div>
+      </div>
+      <div class="tc-cost">
+        <div class="tc-cost-val paid" id="ccDetail">4,665원</div>
+        <div class="tc-cost-sub">월 1회 발송 기준</div>
+      </div>
+    </div>
+    <div class="tc-row r">
+      <div class="tc-icon">📅</div>
+      <div class="tc-info">
+        <div class="tc-name">정기 메시지 (날짜 기반)</div>
+        <div class="tc-detail">611명 × 15원 (매월 1회)</div>
+      </div>
+      <div class="tc-cost">
+        <div class="tc-cost-val paid" id="rcDetail">9,165원</div>
+        <div class="tc-cost-sub">매월 반복</div>
+      </div>
+    </div>
+    <div class="tc-row" style="border-left-color:#1CC800;background:#F8FFF8;">
+      <div class="tc-icon">🆓</div>
+      <div class="tc-info">
+        <div class="tc-name">웰컴 즉시 발송 (1단계)</div>
+        <div class="tc-detail">신규 친구 추가 즉시 자동 발송</div>
+      </div>
+      <div class="tc-cost">
+        <div class="tc-cost-val free">무료</div>
+        <div class="tc-cost-sub">과금 없음</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상한 설정 -->
+  <div class="limit-card">
+    <div class="lc-header">⚠️ 발송 상한 설정 (과금 쇼크 방지)</div>
+    <div class="lc-desc">친구 수가 갑자기 늘어나도 설정된 상한을 초과하면 자동으로 발송이 중단되고 알림을 드립니다</div>
+    <div class="lc-inputs">
+      <div class="lc-input-group">
+        <label>월 최대 발송 인원</label>
+        <input type="text" value="2,000명">
+      </div>
+      <div class="lc-input-group">
+        <label>월 최대 비용 상한</label>
+        <input type="text" value="50,000원">
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#888;background:rgba(0,0,0,0.04);border-radius:8px;padding:8px 10px;">
+      💡 친구 10만 채널이 정기메시지를 켜면 150만원이 청구될 수 있습니다. 상한 설정으로 안전하게 운영하세요.
+    </div>
+  </div>
+
+  <!-- 발송 확인 체크리스트 -->
+  <div class="confirm-section">
+    <div class="confirm-title">✅ 발송 전 최종 확인</div>
+    <div class="confirm-checklist">
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">
+          <div class="check-main">메시지 내용 검토 완료</div>
+          <div class="check-sub">오탈자, 링크, 혜택 내용 확인됨</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">
+          <div class="check-main">발송 대상 확인 — 611명</div>
+          <div class="check-sub">삭제되지 않은 활성 친구 기준</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">
+          <div class="check-main">트리거 충돌 없음</div>
+          <div class="check-sub">웰컴 > 이탈케어 > 정기메시지 우선순위 자동 적용</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn">⚠</div>
+        <div class="check-text">
+          <div class="check-main">월렛 잔액 확인 — 125,000원 보유</div>
+          <div class="check-sub">예상 비용(18,780원) 대비 충분함</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">
+          <div class="check-main">수신거부 필터 자동 적용</div>
+          <div class="check-sub">수신거부 이력 친구는 자동 제외됨</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-final">
+      <div class="cf-left">
+        <h3>트리거 활성화 비용 (월)</h3>
+        <div class="cf-amount">18,780원</div>
+      </div>
+      <button class="cf-btn">트리거 저장 및 시작 →</button>
+    </div>
+
+    <button class="cancel-btn">취소하고 다시 검토</button>
+  </div>
+</div>
+
+<script>
+function updateCost(friends) {
+  friends = parseInt(friends);
+  document.getElementById('friendCount').textContent = friends.toLocaleString() + '명';
+
+  const wc = Math.round(friends * 0.157 * 15) + Math.round(friends * 0.843 * 15 * 0.6);
+  const cc = Math.round(friends * 0.532 * 15) * 0.25;
+  const rc = friends * 15;
+  const total = wc + cc + rc;
+
+  document.getElementById('totalCost').textContent = Math.round(total).toLocaleString();
+  document.getElementById('costSub').textContent = friends.toLocaleString() + '명 기준 · 건당 15원 · 웰컴+이탈케어+정기 합산';
+  document.getElementById('welcomeCost').textContent = Math.round(wc).toLocaleString() + '원';
+  document.getElementById('churnCost').textContent = Math.round(cc).toLocaleString() + '원';
+  document.getElementById('regularCost').textContent = Math.round(rc).toLocaleString() + '원';
+  document.getElementById('wcDetail').textContent = Math.round(wc).toLocaleString() + '원';
+  document.getElementById('ccDetail').textContent = Math.round(cc).toLocaleString() + '원';
+  document.getElementById('rcDetail').textContent = Math.round(rc).toLocaleString() + '원';
+
+  // 슬라이더 색상 업데이트
+  const slider = document.getElementById('friendSlider');
+  const pct = ((friends - 100) / (10000 - 100)) * 100;
+  slider.style.background = `linear-gradient(to right, #3182F6 0%, #3182F6 ${pct}%, #E0E0E0 ${pct}%)`;
+}
+</script>
+</body>
+</html>

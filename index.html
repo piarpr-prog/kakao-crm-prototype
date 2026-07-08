@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카카오 채널 Native CRM 2.0 — 시안</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #111; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  .nav {
+    background: #1A1A1A;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 16px;
+    height: 52px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .nav::-webkit-scrollbar { height: 3px; }
+  .nav::-webkit-scrollbar-track { background: #111; }
+  .nav::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+  .nav-logo {
+    font-size: 15px;
+    font-weight: 900;
+    color: #FEE500;
+    white-space: nowrap;
+    margin-right: 20px;
+    flex-shrink: 0;
+  }
+  .nav-logo span { color: #888; font-weight: 400; margin-left: 6px; font-size: 12px; }
+
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 52px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .nav-tab:hover { color: #ccc; }
+  .nav-tab.active { color: #FEE500; border-bottom-color: #FEE500; }
+  .nav-tab .tab-num {
+    width: 18px; height: 18px;
+    background: #333;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .nav-tab.active .tab-num { background: #FEE500; color: #111; }
+
+  .frame-wrap { flex: 1; position: relative; overflow: hidden; }
+  iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  iframe.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 랜딩 화면 */
+  .landing {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    background: linear-gradient(135deg, #111 0%, #1A1A2E 100%);
+  }
+  .landing h1 {
+    font-size: 36px;
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .landing h1 em { color: #FEE500; font-style: normal; }
+  .landing p { font-size: 16px; color: #888; text-align: center; line-height: 1.8; }
+
+  .landing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 800px;
+    width: 100%;
+    padding: 0 24px;
+  }
+  .lg-card {
+    background: #1E1E30;
+    border: 1.5px solid #333;
+    border-radius: 14px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .lg-card:hover { border-color: #FEE500; transform: translateY(-2px); }
+  .lg-card:nth-child(5), .lg-card:nth-child(6), .lg-card:nth-child(7) {
+    grid-column: auto;
+  }
+  .lg-icon { font-size: 28px; margin-bottom: 8px; }
+  .lg-num { font-size: 10px; color: #FEE500; font-weight: 700; margin-bottom: 4px; }
+  .lg-title { font-size: 12px; font-weight: 700; color: #fff; }
+  .lg-sub { font-size: 10px; color: #666; margin-top: 4px; line-height: 1.5; }
+
+  .landing-footer { font-size: 12px; color: #444; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Kakao Channel CRM 2.0 <span>| 비즈전략스쿼드</span></div>
+  <div class="nav-tab active" onclick="showTab(0, this)">
+    <span class="tab-num">🏠</span>
+    <span>홈</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(1, this)">
+    <span class="tab-num">1</span>
+    <span>메인 대시보드</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(2, this)">
+    <span class="tab-num">2</span>
+    <span>웰컴 트리거 설정</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(3, this)">
+    <span class="tab-num">3</span>
+    <span>이탈케어 설정</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(4, this)">
+    <span class="tab-num">4</span>
+    <span>정기 메시지</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(5, this)">
+    <span class="tab-num">5</span>
+    <span>채널메뉴 연계 팝업</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(6, this)">
+    <span class="tab-num">6</span>
+    <span>비용 미리보기</span>
+  </div>
+  <div class="nav-tab" onclick="showTab(7, this)">
+    <span class="tab-num">7</span>
+    <span>성과 대시보드</span>
+  </div>
+</nav>
+
+<div class="frame-wrap">
+
+  <!-- 랜딩 -->
+  <div class="landing" id="landing">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#FEE500;text-align:center;margin-bottom:12px;letter-spacing:1px;">KAKAO CHANNEL · NATIVE CRM 2.0</div>
+      <h1>카카오 채널의 <em>모든 접점</em>을<br>CRM 트리거로</h1>
+    </div>
+    <p>메시지 발송 자동화를 넘어 — 소식·쿠폰·채팅·예약 전 기능에서<br>SDK 없이 SMB 파트너가 설정 1회로 작동하는 자동화 CRM 프레임워크</p>
+    <div class="landing-grid">
+      <div class="lg-card" onclick="showTabByIndex(1)">
+        <div class="lg-icon">🗂</div>
+        <div class="lg-num">SCREEN 01</div>
+        <div class="lg-title">메인 대시보드</div>
+        <div class="lg-sub">트리거 현황 & 채널메뉴 연계 ON/OFF</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(2)">
+        <div class="lg-icon">👋</div>
+        <div class="lg-num">SCREEN 02</div>
+        <div class="lg-title">웰컴 트리거</div>
+        <div class="lg-sub">3단계 시나리오 설정 플로우</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(3)">
+        <div class="lg-icon">💔</div>
+        <div class="lg-num">SCREEN 03</div>
+        <div class="lg-title">이탈케어</div>
+        <div class="lg-sub">6·12개월 단계별 재활성화</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(4)">
+        <div class="lg-icon">📅</div>
+        <div class="lg-num">SCREEN 04</div>
+        <div class="lg-title">정기 메시지</div>
+        <div class="lg-sub">날짜·기간·행동 기반 3가지 유형</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(5)">
+        <div class="lg-icon">📲</div>
+        <div class="lg-num">SCREEN 05</div>
+        <div class="lg-title">채널메뉴 연계 팝업</div>
+        <div class="lg-sub">소식·쿠폰·매장·채팅·예약·체크아웃</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(6)">
+        <div class="lg-icon">🧮</div>
+        <div class="lg-num">SCREEN 06</div>
+        <div class="lg-title">비용 미리보기</div>
+        <div class="lg-sub">슬라이더 시뮬레이터 + 상한 설정</div>
+      </div>
+      <div class="lg-card" onclick="showTabByIndex(7)">
+        <div class="lg-icon">📊</div>
+        <div class="lg-num">SCREEN 07</div>
+        <div class="lg-title">성과 대시보드</div>
+        <div class="lg-sub">트리거별 열람·클릭·재활성률 분석</div>
+      </div>
+    </div>
+    <div class="landing-footer">위 카드를 클릭하거나 상단 탭에서 화면을 선택하세요</div>
+  </div>
+
+  <!-- 7개 iframe -->
+  <iframe id="frame1" src="crm_01_main.html"></iframe>
+  <iframe id="frame2" src="crm_02_welcome.html"></iframe>
+  <iframe id="frame3" src="crm_03_churn.html"></iframe>
+  <iframe id="frame4" src="crm_04_regular.html"></iframe>
+  <iframe id="frame5" src="crm_05_popups.html"></iframe>
+  <iframe id="frame6" src="crm_06_cost.html"></iframe>
+  <iframe id="frame7" src="crm_07_analytics.html"></iframe>
+
+</div>
+
+<script>
+const tabs = document.querySelectorAll('.nav-tab');
+const frames = document.querySelectorAll('iframe');
+const landing = document.getElementById('landing');
+let current = 0;
+
+function showTab(idx, el) {
+  tabs.forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  if (idx === 0) {
+    landing.style.display = 'flex';
+    frames.forEach(f => { f.classList.remove('visible'); });
+    current = 0;
+    return;
+  }
+
+  landing.style.display = 'none';
+  frames.forEach((f, i) => {
+    f.classList.toggle('visible', i === idx - 1);
+  });
+  current = idx;
+}
+
+function showTabByIndex(idx) {
+  showTab(idx, tabs[idx]);
+}
+</script>
+
+</body>
+</html>
