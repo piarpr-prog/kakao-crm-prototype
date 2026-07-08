@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웰컴&이탈케어 트리거 메시지_사전세팅 자동발송</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif;
+  background: #111;
+  color: #fff;
+  min-height: 100vh;
+  padding: 36px 32px 40px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 28px;
+  letter-spacing: -0.3px;
+}
+
+/* ── 5칸 그리드 ── */
+.grid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 0;
+}
+.col { display: flex; flex-direction: column; align-items: center; }
+
+/* 컬럼 헤더 */
+.col-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 14px;
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+/* ── 폰 껍데기 ── */
+.phone {
+  width: 152px;
+  background: #1C1C1E;
+  border-radius: 28px;
+  padding: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.phone-inner {
+  border-radius: 22px;
+  overflow: hidden;
+  background: #B2C4D5;
+}
+
+/* 상태바 */
+.sb {
+  background: rgba(255,255,255,0.25);
+  padding: 6px 10px 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sb-time { font-size: 9px; font-weight: 800; color: #111; }
+.sb-icons { font-size: 8px; color: #111; }
+
+/* 채팅 헤더 */
+.ch {
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(8px);
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.ch-back { font-size: 13px; color: #111; font-weight: 300; }
+.ch-badge {
+  background: #FF3B30; color: #fff;
+  font-size: 8px; font-weight: 800;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.ch-center { flex: 1; text-align: center; }
+.ch-name { font-size: 10px; font-weight: 800; color: #111; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.ch-name .v { font-size: 8px; color: #3182F6; }
+.ch-sub { font-size: 8px; color: #888; }
+.ch-icons { font-size: 11px; color: #111; display: flex; gap: 6px; }
+
+/* 채팅 바디 */
+.cb {
+  background: #B2C4D5;
+  padding: 6px 6px 4px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* 날짜 구분 */
+.dd {
+  text-align: center;
+  margin: 4px 0;
+}
+.dd span {
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  font-size: 7.5px;
+  padding: 2px 7px;
+  border-radius: 8px;
+}
+
+/* 시스템 메시지 */
+.sys {
+  background: rgba(255,255,255,0.78);
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 7.5px;
+  color: #555;
+  line-height: 1.55;
+  margin: 2px 0;
+}
+.sys b { font-weight: 700; color: #111; display: block; margin-bottom: 2px; }
+
+/* 메시지 행 */
+.mr {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+.av {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #FEE500;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 900; color: #111;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.bw { max-width: 110px; }
+.sn { font-size: 7.5px; color: #555; margin-bottom: 3px; }
+.bubble {
+  background: #fff;
+  border-radius: 3px 10px 10px 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.ad-lbl { font-size: 7px; color: #aaa; padding: 5px 8px 0; }
+.bimg {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.btxt {
+  padding: 6px 8px;
+  font-size: 7.5px;
+  line-height: 1.55;
+  color: #222;
+}
+.btxt b { font-weight: 700; }
+.bbtn-area { border-top: 1px solid #F0F0F0; }
+.bbtn {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #3182F6;
+  text-align: center;
+  background: #fff;
+  border-top: 1px solid #F0F0F0;
+  cursor: default;
+}
+.bbtn:first-child { border-top: none; }
+.bbtn.gray { color: #aaa; font-weight: 500; }
+.mt { font-size: 7px; color: rgba(0,0,0,0.3); margin-left: 3px; align-self: flex-end; white-space: nowrap; }
+
+/* 채널메뉴 바 */
+.cmb {
+  background: rgba(255,255,255,0.9);
+  padding: 7px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: #111;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* 입력바 */
+.ib {
+  background: rgba(255,255,255,0.95);
+  padding: 5px 8px 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ib-plus { font-size: 13px; color: #888; }
+.ib-field {
+  flex: 1;
+  background: #F0F0F0;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 7.5px;
+  color: #aaa;
+}
+
+/* ── 플로우 영역 ── */
+.flow-section {
+  margin-top: 16px;
+  position: relative;
+}
+
+/* 상단 화살표 */
+.arrow-down {
+  text-align: center;
+  font-size: 18px;
+  color: #3182F6;
+  line-height: 1;
+  margin: 6px 0 4px;
+}
+
+/* 플로우 박스 */
+.fbox {
+  background: #1E1E30;
+  border: 1.5px solid #3182F6;
+  border-radius: 8px;
+  padding: 9px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  line-height: 1.4;
+  width: 100%;
+}
+.fbox.free { border-color: #1CC800; background: rgba(28,200,0,0.08); color: #1CC800; }
+
+/* 다이아몬드 */
+.diamond-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+.diamond {
+  width: 80px; height: 80px;
+  background: #FEE500;
+  transform: rotate(45deg);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.diamond-text {
+  transform: rotate(-45deg);
+  font-size: 9px;
+  font-weight: 800;
+  color: #111;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* 가로 화살표 / 연결선 */
+.flow-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+/* 클릭O/X 레이블 */
+.branch-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0;
+}
+.branch-lbl.y { color: #1CC800; }
+.branch-lbl.n { color: #FF6B35; }
+
+/* 하단 요약 박스 */
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+.summary-box {
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #fff;
+}
+.summary-box.left { background: rgba(49,130,246,0.15); border: 1.5px solid rgba(49,130,246,0.4); }
+.summary-box.right { background: rgba(49,130,246,0.15); border: 1.5px solid rgba(49,130,246,0.4); }
+.summary-box .highlight { color: #FEE500; font-weight: 700; }
+.summary-box .highlight-o { color: #FF6B35; font-weight: 700; }
+
+/* 가로 연결 화살표 (SVG overlay) */
+.connector-row {
+  position: relative;
+  height: 32px;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* 가로 span 화살표용 */
+.h-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  color: #3182F6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 반응O/X 레이블 */
+.reaction-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: #3182F6;
+  padding: 2px 0;
+}
+
+/* 구분선 */
+.divider {
+  width: 1px;
+  background: #333;
+  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 0;
+}
+
+/* 콜아웃 */
+.callout {
+  background: rgba(254,229,0,0.08);
+  border: 1px solid rgba(254,229,0,0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: #bbb;
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.callout b { color: #FEE500; }
+</style>
+</head>
+<body>
+
+<h1>웰컴&이탈케어 트리거 메시지_사전세팅 자동발송</h1>
+
+<!-- ───── 폰 5개 + 컬럼 타이틀 ───── -->
+<div class="grid5">
+
+  <!-- 1. 웰컴메시지 -->
+  <div class="col">
+    <div class="col-title">웰컴메시지</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="sb"><span class="sb-time">4:21</span><span class="sb-icons">●●●</span></div>
+        <div class="ch">
+          <span class="ch-back">‹</span>
+          <div class="ch-badge">1</div>
+          <div class="ch-center">
+            <div class="ch-name">카카오 <span class="v">✔</span></div>
+            <div class="ch-sub">● 챗봇 채팅중</div>
+          </div>
+          <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+        </div>
+        <div class="cb">
+          <div class="sys">
+            <b>카카오</b>
+            '카카오' 채널을 추가해 주셔서 감사합니다.<br>앞으로 다양한 소식과 혜택/정보를 메시지로 받으실 수 있습니다.<br><br>채널 추가 일시(한국시간 기준): 2026년 7월 8일 16:21<br>수신거부: 홈&gt;채널 차단
+          </div>
+          <div class="mr">
+            <div class="av">K</div>
+            <div class="bw">
+              <div class="sn">카카오</div>
+              <div class="bubble">
+                <div class="ad-lbl">(광고) 카카오</div>
+                <div class="bimg" style="background:linear-gradient(135deg,#FEE500,#FFD700);height:64px;">🎉</div>
+                <div class="btxt">안녕하세요! 👋<br><br><b>카카오</b> 채널에 오신 걸 환영합니다!<br><br>신규 친구분께 드리는 특별 혜택이 준비되어 있습니다. 지금 바로 확인해보세요 😊</div>
+                <div class="bbtn-area">
+                  <div class="bbtn">신규 혜택 보러가기 →</div>
+                </div>
+              </div>
+            </div>
+            <span class="mt">오후 4:21</span>
+          </div>
+        </div>
+        <div class="cmb">채널 메뉴 ∧</div>
+        <div class="ib">
+          <span class="ib-plus">＋</span>
+          <div class="ib-field">챗봇에게 메시지 입력</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 웰컴 트리거 클릭O -->
+  <div class="col">
+    <div class="col-title">웰컴 트리거 클릭O</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="sb"><span class="sb-time">4:21</span><span class="sb-icons">●●●</span></div>
+        <div class="ch">
+          <span class="ch-back">‹</span>
+          <div class="ch-badge">1</div>
+          <div class="ch-center">
+            <div class="ch-name">카카오 <span class="v">✔</span></div>
+            <div class="ch-sub">● 챗봇 채팅중</div>
+          </div>
+          <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+        </div>
+        <div class="cb">
+          <div class="dd"><span>D+1 · 7월 9일</span></div>
+          <div class="mr">
+            <div class="av">K</div>
+            <div class="bw">
+              <div class="sn">카카오</div>
+              <div class="bubble">
+                <div class="ad-lbl">(광고) 카카오</div>
+                <div class="bimg" style="background:linear-gradient(135deg,#667EEA,#764BA2);height:64px;">⭐</div>
+                <div class="btxt">안녕하세요! 😊<br><br>혜택 확인해주셔서 감사해요!<br><br>💎 <b>카카오 멤버십</b>에 가입하시면<br>매달 다양한 혜택을 받으실 수 있어요.<br><br>지금 가입하면 첫 달 <b>50% 할인!</b></div>
+                <div class="bbtn-area">
+                  <div class="bbtn">멤버십 혜택 보러가기 →</div>
+                  <div class="bbtn gray">나중에</div>
+                </div>
+              </div>
+            </div>
+            <span class="mt">오전 10:00</span>
+          </div>
+        </div>
+        <div class="cmb">채널 메뉴 ∧</div>
+        <div class="ib">
+          <span class="ib-plus">＋</span>
+          <div class="ib-field">챗봇에게 메시지 입력</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 웰컴 트리거 클릭X -->
+  <div class="col">
+    <div class="col-title">웰컴 트리거 클릭X</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="sb"><span class="sb-time">4:21</span><span class="sb-icons">●●●</span></div>
+        <div class="ch">
+          <span class="ch-back">‹</span>
+          <div class="ch-badge">1</div>
+          <div class="ch-center">
+            <div class="ch-name">카카오 <span class="v">✔</span></div>
+            <div class="ch-sub">● 챗봇 채팅중</div>
+          </div>
+          <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+        </div>
+        <div class="cb">
+          <div class="dd"><span>D+2 · 7월 10일</span></div>
+          <div class="mr">
+            <div class="av">K</div>
+            <div class="bw">
+              <div class="sn">카카오</div>
+              <div class="bubble">
+                <div class="ad-lbl">(광고) 카카오</div>
+                <div class="bimg" style="background:linear-gradient(135deg,#FF6B35,#FF8C42);height:64px;">🎟</div>
+                <div class="btxt">안녕하세요 😊<br><br>혹시 지난번 <b>신규 할인 쿠폰</b> 확인하셨나요?<br><br>아직 사용하지 않으셨다면 지금 바로 사용해보세요!<br><br>⏰ 쿠폰 만료까지 <b>5일</b> 남았어요</div>
+                <div class="bbtn-area">
+                  <div class="bbtn">신규 혜택 사용하기 →</div>
+                </div>
+              </div>
+            </div>
+            <span class="mt">오전 10:00</span>
+          </div>
+        </div>
+        <div class="cmb">채널 메뉴 ∧</div>
+        <div class="ib">
+          <span class="ib-plus">＋</span>
+          <div class="ib-field">챗봇에게 메시지 입력</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 이탈케어 6개월 -->
+  <div class="col">
+    <div class="col-title">이탈케어 6개월</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="sb"><span class="sb-time">4:21</span><span class="sb-icons">●●●</span></div>
+        <div class="ch">
+          <span class="ch-back">‹</span>
+          <div class="ch-badge">1</div>
+          <div class="ch-center">
+            <div class="ch-name">카카오 <span class="v">✔</span></div>
+            <div class="ch-sub">● 채팅봇 채팅중</div>
+          </div>
+          <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+        </div>
+        <div class="cb">
+          <div class="dd"><span>D-day · 채널 추가 · 6개월 경과</span></div>
+          <div class="mr">
+            <div class="av">K</div>
+            <div class="bw">
+              <div class="sn">카카오</div>
+              <div class="bubble">
+                <div class="ad-lbl">(광고) 카카오</div>
+                <div class="bimg" style="background:linear-gradient(135deg,#FF6B35,#FF8C42);height:64px;">💝</div>
+                <div class="btxt">안녕하세요 😊<br><br>오랫동안 소식을 못 드렸네요.<br><br>💰 <b>고객님께만 드리는 1만원 적립금</b><br><br>오늘 바로 사용 가능한 적립금을 준비했어요. 지금 돌아와 주세요!<br><br>⏰ 유효기간: 발송 후 7일</div>
+                <div class="bbtn-area">
+                  <div class="bbtn">지금 혜택 사용하기 →</div>
+                </div>
+              </div>
+            </div>
+            <span class="mt">오전 10:00</span>
+          </div>
+        </div>
+        <div class="cmb">채널 메뉴 ∧</div>
+        <div class="ib">
+          <span class="ib-plus">＋</span>
+          <div class="ib-field">챗봇에게 메시지 입력</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 이탈케어 12개월 -->
+  <div class="col">
+    <div class="col-title">이탈케어 12개월</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="sb"><span class="sb-time">4:21</span><span class="sb-icons">●●●</span></div>
+        <div class="ch">
+          <span class="ch-back">‹</span>
+          <div class="ch-badge">1</div>
+          <div class="ch-center">
+            <div class="ch-name">카카오 <span class="v">✔</span></div>
+            <div class="ch-sub">● 챗봇 채팅중</div>
+          </div>
+          <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+        </div>
+        <div class="cb">
+          <div class="dd"><span>D-day · 채널 추가 · 12개월 경과</span></div>
+          <div class="mr">
+            <div class="av">K</div>
+            <div class="bw">
+              <div class="sn">카카오</div>
+              <div class="bubble">
+                <div class="ad-lbl">(광고) 카카오</div>
+                <div class="bimg" style="background:linear-gradient(135deg,#E91E63,#C2185B);height:64px;">🔥</div>
+                <div class="btxt">오랜만에 연락드립니다 🙏<br><br>고객님이 보고 싶어서 마지막으로 연락드려요.<br><br>🎁 <b>고객님께만 드리는 시크릿 70% 쿠폰</b><br><br>단 한 번만 제공되는 특별 혜택입니다.<br>⏰ 유효기간: <b>3일</b></div>
+                <div class="bbtn-area">
+                  <div class="bbtn">시크릿 쿠폰 받기 →</div>
+                </div>
+              </div>
+            </div>
+            <span class="mt">오전 10:00</span>
+          </div>
+        </div>
+        <div class="cmb">채널 메뉴 ∧</div>
+        <div class="ib">
+          <span class="ib-plus">＋</span>
+          <div class="ib-field">챗봇에게 메시지 입력</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /grid5 -->
+
+<!-- ───── 플로우 다이어그램 ───── -->
+<div style="position:relative;margin-top:0;">
+
+  <!-- 화살표 아래 + 플로우박스 행 -->
+  <div class="grid5" style="margin-top:10px;align-items:start;">
+
+    <!-- col1: 웰컴 → 화살표 + 박스 -->
+    <div class="col">
+      <div class="arrow-down">↓</div>
+      <div class="fbox">친구추가와 동시<br>(광고)웰컴메시지<br>발송</div>
+    </div>
+
+    <!-- col2: 클릭O → 화살표 + 박스 -->
+    <div class="col">
+      <div class="branch-lbl y">클릭O</div>
+      <div class="arrow-down" style="margin-top:0;">↓</div>
+      <div class="fbox">클릭 D+1~5 후<br>파트너 연계메시지<br>사전 세팅 자동 발송</div>
+    </div>
+
+    <!-- col3: 클릭X → 화살표 + 박스 -->
+    <div class="col">
+      <div class="branch-lbl n">클릭X</div>
+      <div class="arrow-down" style="margin-top:0;">↓</div>
+      <div class="fbox">웰컴 혜택 or 유입<br>재알림 진행<br>사전 세팅 자동 발송</div>
+    </div>
+
+    <!-- col4: 이탈케어 1단계 -->
+    <div class="col">
+      <div class="arrow-down">↓</div>
+      <div class="fbox" style="border-color:#FF6B35;background:rgba(255,107,53,0.08);">클릭/열람 6개월<br>미반응<br>이탈케어 1차 발송</div>
+    </div>
+
+    <!-- col5: 이탈케어 2단계 -->
+    <div class="col">
+      <div class="branch-lbl n" style="color:#FF6B35;">반응X</div>
+      <div class="arrow-down" style="margin-top:0;">↓</div>
+      <div class="fbox" style="border-color:#E91E63;background:rgba(233,30,99,0.08);">클릭/열람 12개월<br>미반응<br>이탈케어 2차 발송</div>
+    </div>
+
+  </div>
+
+  <!-- 다이아몬드 + 화살표 행 -->
+  <!-- SVG로 전체 연결선 표현 -->
+  <div style="position:relative;margin-top:10px;">
+    <div class="grid5" style="align-items:center;">
+
+      <!-- col1 아래에 다이아몬드 중앙 -->
+      <div class="col" style="gap:0;">
+        <div style="height:30px;display:flex;flex-direction:column;align-items:center;">
+          <!-- col1에서 다이아몬드로 이어지는 선은 없음, 다이아몬드가 col1-2 사이에 -->
+        </div>
+      </div>
+
+      <!-- col1-2 사이 다이아몬드: 실제로는 col1.5 위치이므로 grid 외부에 absolute로 처리 -->
+      <!-- 간단하게 col2 위에 배치 -->
+      <div class="col" style="position:relative;">
+        <div class="diamond-wrap" style="margin-bottom:6px;">
+          <div class="diamond">
+            <span class="diamond-text">버튼 클릭<br>반응 로그</span>
+          </div>
+        </div>
+        <!-- 클릭O 화살표 (자신=col2) -->
+        <div style="font-size:9px;color:#1CC800;font-weight:800;text-align:center;margin-bottom:2px;">클릭O ↑</div>
+      </div>
+
+      <div class="col">
+        <!-- 클릭X 화살표 -->
+        <div style="font-size:9px;color:#FF6B35;font-weight:800;text-align:center;margin-bottom:2px;">클릭X ↑</div>
+        <div style="height:56px;"></div><!-- 다이아몬드 높이 맞춤 -->
+      </div>
+
+      <div class="col">
+        <div class="diamond-wrap" style="margin-bottom:6px;">
+          <div class="diamond" style="background:#FEE500;">
+            <span class="diamond-text">열람/클릭<br>반응 로그</span>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#1CC800;font-weight:800;text-align:center;margin-bottom:2px;">반응O ↑</div>
+      </div>
+
+      <div class="col">
+        <div style="font-size:9px;color:#FF6B35;font-weight:800;text-align:center;margin-bottom:2px;">반응X ↑</div>
+        <div style="height:56px;"></div>
+        <!-- 2단계 후 반응 -->
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;width:100%;">
+          <div style="display:flex;justify-content:space-between;padding:0 4px;">
+            <div style="font-size:9px;color:#1CC800;font-weight:700;">반응O</div>
+            <div style="font-size:9px;color:#888;font-weight:700;">반응X</div>
+          </div>
+          <div style="font-size:9px;color:#888;text-align:right;padding:0 4px;">메시지 제한<br>(선택)</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- col4 다이아몬드 아래 "반응O → 정기메시지" 박스 -->
+    <div class="grid5" style="margin-top:8px;align-items:start;">
+      <div class="col"></div>
+      <div class="col"></div>
+      <div class="col"></div>
+      <div class="col">
+        <!-- 반응O 결과 -->
+        <div class="fbox free" style="font-size:10px;">이탈케어 성공<br>정기메시지<br>퍼널 연결</div>
+      </div>
+      <div class="col"></div>
+    </div>
+
+  </div>
+
+</div><!-- /flow -->
+
+<!-- ───── 하단 요약 박스 ───── -->
+<div class="summary-row">
+  <div class="summary-box left">
+    친구추가 <span class="highlight">D+1~5 광고성 메시지 열람/클릭 반응률 높음</span> → 파트너 성과 체감<br>
+    웰컴 트리거 종료 → <span class="highlight">정기메시지 / 이탈케어 Native CRM 연결</span>
+  </div>
+  <div class="summary-box right">
+    친구추가 D+1/180일/360일 채널 차단율 상승 - 신규 친구 비용>재활성화 비용<br>
+    <span class="highlight-o">미반응 고객 그룹 메시지 제한(파트너 선택)을 통해 파트너사의 ROI 개선</span>
+  </div>
+</div>
+
+</body>
+</html>
