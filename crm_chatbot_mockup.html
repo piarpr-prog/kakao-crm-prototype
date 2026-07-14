@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웰컴 챗봇 — 선호조사 & 꼬리표 세그먼트</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif;
+  background: #1A1A2E;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 60px;
+  color: #fff;
+}
+
+.page-title { font-size: 18px; font-weight: 900; margin-bottom: 4px; text-align: center; }
+.page-sub { font-size: 13px; color: #666; margin-bottom: 24px; text-align: center; }
+
+/* ── 업종 탭 ── */
+.industry-tabs {
+  display: flex; gap: 8px; margin-bottom: 20px;
+  background: #111; padding: 5px; border-radius: 14px;
+}
+.i-tab {
+  padding: 9px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  color: #666; transition: all 0.2s; white-space: nowrap;
+}
+.i-tab.active { background: #FEE500; color: #111; }
+
+/* ── 메인 레이아웃 ── */
+.main-layout {
+  display: flex; gap: 28px; align-items: flex-start;
+  width: 100%; max-width: 860px;
+}
+
+/* ── 폰 목업 ── */
+.phone-shell {
+  width: 240px; flex-shrink: 0;
+  background: #1C1C1E;
+  border-radius: 44px; padding: 10px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.07);
+}
+.phone-screen {
+  background: #B2C4D5;
+  border-radius: 34px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  height: 520px;
+}
+
+/* 상태바 */
+.sb {
+  background: rgba(255,255,255,0.2);
+  padding: 8px 16px 3px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-shrink: 0;
+}
+.sb-time { font-size: 11px; font-weight: 800; color: #111; }
+.sb-icons { font-size: 10px; color: #111; }
+
+/* 채팅 헤더 */
+.ch {
+  background: rgba(255,255,255,0.9);
+  padding: 7px 12px;
+  display: flex; align-items: center; gap: 7px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.ch-back { font-size: 16px; color: #111; font-weight: 300; }
+.ch-badge {
+  background: #FF3B30; color: #fff;
+  font-size: 9px; font-weight: 800;
+  width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.ch-center { flex: 1; text-align: center; }
+.ch-name { font-size: 13px; font-weight: 800; color: #111; display: flex; align-items: center; justify-content: center; gap: 3px; }
+.ch-verify { font-size: 10px; color: #3182F6; }
+.ch-status { font-size: 10px; color: #1CC800; }
+.ch-icons { display: flex; gap: 8px; font-size: 15px; color: #111; }
+
+/* 채팅 바디 */
+.chat-body {
+  flex: 1; overflow-y: auto; padding: 10px 10px 6px;
+  display: flex; flex-direction: column; gap: 6px;
+  scroll-behavior: smooth;
+}
+.chat-body::-webkit-scrollbar { display: none; }
+
+/* 날짜 구분 */
+.date-divider { text-align: center; margin: 4px 0; }
+.date-divider span {
+  background: rgba(0,0,0,0.18); color: #fff;
+  font-size: 9px; padding: 2px 8px; border-radius: 8px;
+}
+
+/* 시스템 메시지 */
+.sys-msg {
+  background: rgba(255,255,255,0.75);
+  border-radius: 8px; padding: 8px 10px;
+  font-size: 9px; color: #555; line-height: 1.6;
+}
+.sys-msg b { font-weight: 700; color: #111; display: block; margin-bottom: 3px; }
+
+/* 일반 버블 행 */
+.msg-row { display: flex; align-items: flex-end; gap: 5px; }
+.av {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #FEE500;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; color: #111;
+  flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+}
+.bw { max-width: 165px; }
+.sender-name { font-size: 9px; color: #555; margin-bottom: 3px; }
+.bubble {
+  background: #fff; border-radius: 4px 14px 14px 14px;
+  overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* 챗봇 메시지 스타일 */
+.bot-header {
+  padding: 10px 12px 6px;
+  font-size: 10.5px; line-height: 1.6; color: #222;
+}
+.bot-header b { font-weight: 800; }
+.bot-q {
+  background: #F8F8F8;
+  margin: 0 8px 8px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 10px; font-weight: 700; color: #333;
+}
+
+/* 챗봇 버튼 그룹 */
+.bot-btns {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 10px 10px;
+}
+.bot-btn {
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 10px; font-weight: 700;
+  border: 1.5px solid #ddd;
+  background: #fff; color: #333;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.bot-btn:hover { border-color: #FEE500; background: #FFFDE7; }
+.bot-btn.selected { border-color: #FEE500; background: #FEE500; color: #111; }
+
+/* 유저 선택 버블 (오른쪽) */
+.user-row {
+  display: flex; justify-content: flex-end;
+  align-items: flex-end; gap: 4px;
+}
+.user-bubble {
+  background: #FEE500;
+  border-radius: 14px 14px 4px 14px;
+  padding: 7px 11px;
+  font-size: 10.5px; font-weight: 700; color: #111;
+  max-width: 140px;
+}
+.msg-time { font-size: 9px; color: rgba(0,0,0,0.3); white-space: nowrap; }
+
+/* 꼬리표 태그 메시지 */
+.tag-msg {
+  background: rgba(28,200,0,0.12);
+  border: 1px solid rgba(28,200,0,0.3);
+  border-radius: 10px; padding: 8px 10px;
+  font-size: 9px; color: #1CC800; line-height: 1.6;
+  margin: 2px 0;
+}
+.tag-msg b { font-weight: 800; }
+
+/* 채널 메뉴 + 입력바 */
+.cmb {
+  background: rgba(255,255,255,0.92);
+  padding: 8px; text-align: center;
+  font-size: 11px; font-weight: 600; color: #111;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.ib {
+  background: rgba(255,255,255,0.97);
+  padding: 6px 10px 10px;
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.ib-plus { font-size: 16px; color: #888; }
+.ib-field {
+  flex: 1; background: #EBEBEB; border-radius: 16px;
+  padding: 6px 12px; font-size: 10px; color: #aaa;
+}
+
+/* ── 오른쪽 정보 패널 ── */
+.info-panel {
+  flex: 1; display: flex; flex-direction: column; gap: 14px;
+  min-width: 0;
+}
+
+.info-card {
+  background: #1E1E30;
+  border: 1.5px solid #333;
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: border-color 0.2s;
+}
+.info-card.highlight { border-color: #FEE500; }
+
+.ic-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.ic-badge {
+  font-size: 11px; font-weight: 800;
+  padding: 4px 12px; border-radius: 20px;
+  flex-shrink: 0;
+}
+.ic-badge.yellow { background: #FEE500; color: #111; }
+.ic-badge.green { background: #1CC800; color: #fff; }
+.ic-badge.orange { background: #FF6B35; color: #fff; }
+.ic-badge.blue { background: #3182F6; color: #fff; }
+.ic-title { font-size: 14px; font-weight: 700; color: #fff; }
+
+.ic-body { font-size: 12px; color: #888; line-height: 1.7; }
+.ic-body b { color: #fff; font-weight: 700; }
+.ic-body .highlight-y { color: #FEE500; font-weight: 700; }
+.ic-body .highlight-g { color: #1CC800; font-weight: 700; }
+
+/* 꼬리표 행 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tag-pill {
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.tag-pill.y { background: rgba(254,229,0,0.15); border: 1px solid rgba(254,229,0,0.4); color: #FEE500; }
+.tag-pill.g { background: rgba(28,200,0,0.15); border: 1px solid rgba(28,200,0,0.4); color: #1CC800; }
+.tag-pill.b { background: rgba(49,130,246,0.15); border: 1px solid rgba(49,130,246,0.4); color: #3182F6; }
+.tag-pill.o { background: rgba(255,107,53,0.15); border: 1px solid rgba(255,107,53,0.4); color: #FF6B35; }
+
+/* 버튼 선택 안내 */
+.select-hint {
+  background: rgba(254,229,0,0.07);
+  border: 1px solid rgba(254,229,0,0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px; color: #888; line-height: 1.6;
+  margin-top: 4px;
+}
+.select-hint b { color: #FEE500; }
+
+/* 업종별 챗봇 예시 그리드 */
+.industry-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-top: 4px;
+}
+.ig-card {
+  background: #16162A;
+  border-radius: 10px; padding: 12px 14px;
+  border: 1px solid #2A2A3E;
+}
+.ig-industry { font-size: 11px; font-weight: 800; margin-bottom: 6px; }
+.ig-q {
+  background: #222236;
+  border-radius: 6px; padding: 6px 8px;
+  font-size: 10px; color: #aaa; margin-bottom: 6px; line-height: 1.5;
+}
+.ig-q::before { content: '챗봇 Q  '; font-weight: 700; color: #666; }
+.ig-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+.ig-btn {
+  padding: 4px 8px; border-radius: 12px;
+  font-size: 9.5px; font-weight: 700;
+  border: 1.5px solid #444; color: #aaa;
+}
+</style>
+</head>
+<body>
+
+<div class="page-title">웰컴 챗봇 — 고객이 스스로 남기는 "꼬리표(세그먼트)"</div>
+<div class="page-sub">버튼 1탭으로 관심사를 파악 — SDK·픽셀 없이 카카오 채널 안에서 타겟 자산 축적</div>
+
+<!-- 업종 탭 -->
+<div class="industry-tabs">
+  <div class="i-tab active" onclick="setIndustry('shopping', this)">🛍 쇼핑</div>
+  <div class="i-tab" onclick="setIndustry('food', this)">🍽 외식/카페</div>
+  <div class="i-tab" onclick="setIndustry('clinic', this)">🏥 병원</div>
+  <div class="i-tab" onclick="setIndustry('beauty', this)">💄 뷰티/미용</div>
+</div>
+
+<!-- 메인 레이아웃 -->
+<div class="main-layout">
+
+  <!-- 폰 -->
+  <div class="phone-shell">
+    <div class="phone-screen">
+      <div class="sb">
+        <span class="sb-time">4:21</span>
+        <span class="sb-icons">●●● ▲</span>
+      </div>
+      <div class="ch">
+        <span class="ch-back">‹</span>
+        <div class="ch-badge">1</div>
+        <div class="ch-center">
+          <div class="ch-name">카카오 <span class="ch-verify">✔</span></div>
+          <div class="ch-status">● 챗봇 채팅중</div>
+        </div>
+        <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+      </div>
+
+      <div class="chat-body" id="chat-body">
+        <!-- JS로 채움 -->
+      </div>
+
+      <div class="cmb">채널 메뉴 ∧</div>
+      <div class="ib">
+        <span class="ib-plus">＋</span>
+        <div class="ib-field">챗봇에게 메시지 입력</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 정보 패널 -->
+  <div class="info-panel" id="info-panel">
+    <!-- JS로 채움 -->
+  </div>
+
+</div>
+
+<script>
+/* ───── 업종 데이터 ───── */
+const industries = {
+  shopping: {
+    name: '쇼핑', color: '#F9A825',
+    question: '주로 어떤 소식을 받고 싶으세요?',
+    buttons: ['신상품', '할인/특가', '재입고 알림'],
+    tags: [
+      { label: '신상품관심', type: 'y' },
+      { label: '가격민감', type: 'g' },
+      { label: '재입고대기', type: 'b' },
+    ],
+    usage: [
+      { btn: '신상품', result: '신상품 출시 → [신상품]관심 고객만 우선 발송' },
+      { btn: '할인/특가', result: '특가 이벤트 → [가격민감] 고객 발송' },
+      { btn: '재입고 알림', result: '재입고 → 해당 상품 대기 고객만 타겟 발송' },
+    ],
+    selected: null,
+    followUp: {
+      '신상품': {
+        msg: '신상품 소식을 가장 먼저 알려드릴게요! 😊\n\n새 상품이 나오면 제일 먼저 알림을 보내드릴게요.',
+        btn: '신상품 보러가기 →',
+        tag: '신상품관심',
+      },
+      '할인/특가': {
+        msg: '할인/특가 소식을 놓치지 않도록 알려드릴게요! 💰\n\n특가 이벤트가 시작되면 바로 알림을 보내드릴게요.',
+        btn: '특가 상품 보기 →',
+        tag: '가격민감',
+      },
+      '재입고 알림': {
+        msg: '재입고 알림을 등록해드릴게요! 🔔\n\n품절된 인기 상품이 다시 입고되면 알려드릴게요.',
+        btn: '재입고 상품 보기 →',
+        tag: '재입고대기',
+      },
+    },
+  },
+  food: {
+    name: '외식/카페', color: '#66BB6A',
+    question: '어떤 메뉴를 좋아하세요? 주로 언제 방문하세요?',
+    buttons: ['커피/디저트', '식사', '평일점심', '저녁/주말'],
+    tags: [
+      { label: '커피·디저트선호', type: 'y' },
+      { label: '식사선호', type: 'g' },
+      { label: '평일점심', type: 'b' },
+      { label: '저녁·주말', type: 'o' },
+    ],
+    usage: [
+      { btn: '커피/디저트', result: '신메뉴 알림 → [커피·디저트선호] 꼬리표로 발송' },
+      { btn: '평일점심', result: '해피아워·런치 쿠폰 → [평일점심] 꼬리표로 매칭 발송' },
+    ],
+    followUp: {
+      '커피/디저트': {
+        msg: '커피·디저트 새 메뉴 소식을 알려드릴게요! ☕\n\n신메뉴가 나오면 제일 먼저 소식 보내드릴게요.',
+        btn: '신메뉴 보러가기 →',
+        tag: '커피·디저트선호',
+      },
+      '식사': {
+        msg: '식사 메뉴 새 소식을 알려드릴게요! 🍽\n\n계절 메뉴가 바뀌면 바로 알림을 보내드릴게요.',
+        btn: '메뉴 보러가기 →',
+        tag: '식사선호',
+      },
+      '평일점심': {
+        msg: '평일 점심 할인 혜택을 알려드릴게요! 🌞\n\n런치 세트 특가 소식을 제일 먼저 보내드릴게요.',
+        btn: '런치 메뉴 보기 →',
+        tag: '평일점심',
+      },
+      '저녁/주말': {
+        msg: '저녁·주말 방문 혜택을 알려드릴게요! 🌙\n\n주말 이벤트 소식을 먼저 알려드릴게요.',
+        btn: '이벤트 보기 →',
+        tag: '저녁·주말',
+      },
+    },
+  },
+  clinic: {
+    name: '병원', color: '#42A5F5',
+    question: '관심 있는 건강 정보를 골라주세요',
+    buttons: ['건강검진', '예방접종', '진료/시술 안내'],
+    tags: [
+      { label: '검진관심', type: 'y' },
+      { label: '접종시기', type: 'g' },
+      { label: '일반진료', type: 'b' },
+    ],
+    usage: [
+      { btn: '건강검진', result: '검진 시즌 리마인더 → [검진관심] 꼬리표별 발송' },
+      { btn: '예방접종', result: '접종 시기 알림 → [접종시기] 꼬리표별 발송' },
+    ],
+    followUp: {
+      '건강검진': {
+        msg: '건강검진 안내 소식을 알려드릴게요! 🩺\n\n검진 시즌이 되면 미리 알림을 보내드릴게요.',
+        btn: '검진 예약하기 →',
+        tag: '검진관심',
+      },
+      '예방접종': {
+        msg: '예방접종 시기에 맞춰 알림을 드릴게요! 💉\n\n접종 권장 시기가 되면 미리 알려드릴게요.',
+        btn: '접종 일정 보기 →',
+        tag: '접종시기',
+      },
+      '진료/시술 안내': {
+        msg: '진료·시술 새 소식을 알려드릴게요! 🏥\n\n새로운 시술이나 이벤트가 생기면 알려드릴게요.',
+        btn: '진료 예약하기 →',
+        tag: '일반진료',
+      },
+    },
+  },
+  beauty: {
+    name: '뷰티/미용', color: '#AB47BC',
+    question: '어떤 케어에 관심 있으세요? 방문 주기는 어느 정도세요?',
+    buttons: ['헤어', '네일', '피부관리', '4~6주'],
+    tags: [
+      { label: '헤어관심', type: 'y' },
+      { label: '네일관심', type: 'g' },
+      { label: '피부관리', type: 'b' },
+      { label: '재방문주기4~6주', type: 'o' },
+    ],
+    usage: [
+      { btn: '헤어', result: '관심 시술 이벤트 → [헤어관심] 우선 발송' },
+      { btn: '4~6주', result: '재방문 주기 도래 시 예약 리마인더 자동 발송' },
+    ],
+    followUp: {
+      '헤어': {
+        msg: '헤어 케어 소식을 알려드릴게요! ✂️\n\n헤어 이벤트와 신규 시술 소식을 먼저 보내드릴게요.',
+        btn: '헤어 이벤트 보기 →',
+        tag: '헤어관심',
+      },
+      '네일': {
+        msg: '네일 케어 소식을 알려드릴게요! 💅\n\n네일아트 신규 디자인 소식을 먼저 알려드릴게요.',
+        btn: '네일 이벤트 보기 →',
+        tag: '네일관심',
+      },
+      '피부관리': {
+        msg: '피부 케어 소식을 알려드릴게요! 🌿\n\n피부 관리 특가 이벤트 소식을 먼저 보내드릴게요.',
+        btn: '피부 이벤트 보기 →',
+        tag: '피부관심',
+      },
+      '4~6주': {
+        msg: '방문 주기에 맞춰 예약 리마인더를 드릴게요! 📅\n\n마지막 방문으로부터 4~6주가 되면 알림을 보내드릴게요.',
+        btn: '예약하기 →',
+        tag: '재방문주기',
+      },
+    },
+  },
+};
+
+let currentIndustry = 'shopping';
+let selectedBtn = null;
+
+/* ───── 렌더 함수 ───── */
+function renderPhone(industry, selected, followUpShown) {
+  const d = industries[industry];
+  let html = '';
+
+  // 시스템 메시지
+  html += `
+  <div class="date-divider"><span>오늘 · 채널 추가</span></div>
+  <div class="sys-msg">
+    <b>카카오</b>
+    '카카오' 채널을 추가해 주셔서 감사합니다.<br>
+    앞으로 다양한 소식과 혜택/정보를 메시지로 받으실 수 있습니다.
+  </div>`;
+
+  // 웰컴 + 챗봇 질문
+  html += `
+  <div class="msg-row">
+    <div class="av">K</div>
+    <div class="bw">
+      <div class="sender-name">카카오</div>
+      <div class="bubble">
+        <div class="bot-header">
+          안녕하세요! 👋<br>
+          <b>카카오</b> 채널에 오신 걸 환영합니다!<br><br>
+          더 맞춤화된 소식을 드리기 위해<br>한 가지만 여쭤볼게요 😊
+        </div>
+        <div class="bot-q">${d.question}</div>
+        <div class="bot-btns">
+          ${d.buttons.map(b => `<div class="bot-btn${selected===b?' selected':''}" onclick="selectBtn('${b}')">${b}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <span class="msg-time">오후 4:21</span>
+  </div>`;
+
+  // 유저 선택 응답
+  if (selected) {
+    html += `
+    <div class="user-row">
+      <span class="msg-time">오후 4:21</span>
+      <div class="user-bubble">${selected}</div>
+    </div>`;
+  }
+
+  // 꼬리표 자동 부여 + 팔로업 메시지
+  if (followUpShown && selected) {
+    const fu = d.followUp[selected];
+    if (fu) {
+      html += `
+      <div class="tag-msg">
+        🏷 꼬리표 자동 부여: <b>${fu.tag}</b><br>
+        이후 메시지 발송 시 이 고객은 [${fu.tag}] 타겟에 포함됩니다
+      </div>`;
+
+      const lines = fu.msg.split('\n').filter(l => l).map(l => l.trim());
+      html += `
+      <div class="msg-row new">
+        <div class="av">K</div>
+        <div class="bw">
+          <div class="sender-name">카카오</div>
+          <div class="bubble">
+            <div class="bot-header">${lines.map((l,i) => i===0?`<b>${l}</b>`:l).join('<br>')}</div>
+            <div class="bot-btns">
+              <div class="bot-btn selected">${fu.btn}</div>
+            </div>
+          </div>
+        </div>
+        <span class="msg-time">오후 4:21</span>
+      </div>`;
+    }
+  }
+
+  document.getElementById('chat-body').innerHTML = html;
+  const body = document.getElementById('chat-body');
+  setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
+}
+
+function renderInfo(industry, selected, followUpShown) {
+  const d = industries[industry];
+  let html = '';
+
+  if (!selected) {
+    // Step 1: 챗봇 선호조사 안내
+    html += `
+    <div class="info-card highlight">
+      <div class="ic-header">
+        <div class="ic-badge yellow">STEP 1</div>
+        <div class="ic-title">웰컴 챗봇 — 선호조사 삽입</div>
+      </div>
+      <div class="ic-body">
+        웰컴 메시지 안에 챗봇 질문을 삽입합니다.<br>
+        고객은 <b>버튼 1탭</b>만으로 관심사를 전달 — 설문 부담 없음.<br><br>
+        <span class="highlight-y">버튼 클릭 = 꼬리표(세그먼트) 자동 부여</span><br>
+        SDK·픽셀 없이 카카오 채널 안에서 타겟 자산 축적
+      </div>
+      <div class="select-hint">
+        👆 <b>왼쪽 폰에서 버튼을 탭해보세요</b><br>
+        고객이 선택하면 꼬리표가 자동으로 부여됩니다
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="ic-header">
+        <div class="ic-title" style="font-size:13px;">📋 ${d.name} — 챗봇 질문 예시</div>
+      </div>
+      <div class="ic-body">"${d.question}"</div>
+      <div class="tag-row">
+        ${d.tags.map(t => `<div class="tag-pill ${t.type}">${t.label}</div>`).join('')}
+      </div>
+    </div>`;
+  } else if (!followUpShown) {
+    // Step 2: 버튼 선택 직후
+    const fu = d.followUp[selected];
+    html += `
+    <div class="info-card highlight">
+      <div class="ic-header">
+        <div class="ic-badge green">STEP 2</div>
+        <div class="ic-title">꼬리표 자동 부여</div>
+      </div>
+      <div class="ic-body">
+        고객이 <b>"${selected}"</b>를 선택했습니다.<br><br>
+        ✅ 꼬리표 <span class="highlight-y">[${fu.tag}]</span> 자동 등록<br>
+        응답 부담 없는 1탭 조사 — 설문 아님<br><br>
+        이후 챗봇 키워드 문의·메시지 클릭 이력으로<br>
+        꼬리표 자동 갱신 (관심사 최신화)
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="ic-header">
+        <div class="ic-title" style="font-size:13px;">📤 다음 단계</div>
+      </div>
+      <div class="ic-body">
+        선택에 맞는 팔로업 메시지를 자동 발송합니다<br>
+        <span class="highlight-g">→ 아래 버튼을 클릭해 확인하세요</span>
+      </div>
+      <div style="margin-top:12px;">
+        <div onclick="showFollowUp()" style="background:#FEE500;color:#111;font-size:13px;font-weight:800;padding:11px;border-radius:10px;text-align:center;cursor:pointer;">팔로업 메시지 보기 →</div>
+      </div>
+    </div>`;
+  } else {
+    // Step 3: 팔로업 + 활용
+    const fu = d.followUp[selected];
+    html += `
+    <div class="info-card highlight">
+      <div class="ic-header">
+        <div class="ic-badge green">STEP 3</div>
+        <div class="ic-title">꼬리표 기반 자동 매칭 발송</div>
+      </div>
+      <div class="ic-body">
+        꼬리표 <span class="highlight-y">[${fu.tag}]</span> 부여 완료<br><br>
+        정기 메시지·이탈케어 발송 시<br>
+        <b>꼬리표 기반으로 타겟/소재를 자동 매칭</b>합니다.<br><br>
+        꼬리표가 쌓일수록 정기·이탈케어의<br>
+        <span class="highlight-g">타겟 정밀도가 자동으로 상승</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="ic-header">
+        <div class="ic-title" style="font-size:13px;">📊 ${d.name} 업종 활용 예시</div>
+      </div>
+      <div class="ic-body" style="display:flex;flex-direction:column;gap:8px;">
+        ${d.usage.map(u => `
+          <div style="background:#16162A;border-radius:8px;padding:9px 10px;">
+            <div style="font-size:11px;font-weight:700;color:#FEE500;margin-bottom:3px;">"${u.btn}" 선택 시</div>
+            <div style="font-size:11px;color:#aaa;">${u.result}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="info-card" style="background:rgba(28,200,0,0.06);border-color:rgba(28,200,0,0.3);">
+      <div class="ic-body" style="color:#888;font-size:11px;">
+        💡 웰컴이 '발송의 시작점'이면서 동시에 '데이터 수집의 시작점'이 됩니다.<br>
+        꼬리표가 쌓일수록 <span class="highlight-g">정기·이탈케어의 타겟 정밀도가 자동으로 상승</span>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('info-panel').innerHTML = html;
+}
+
+function selectBtn(btn) {
+  selectedBtn = btn;
+  renderPhone(currentIndustry, btn, false);
+  renderInfo(currentIndustry, btn, false);
+}
+
+function showFollowUp() {
+  renderPhone(currentIndustry, selectedBtn, true);
+  renderInfo(currentIndustry, selectedBtn, true);
+}
+
+function setIndustry(name, el) {
+  currentIndustry = name;
+  selectedBtn = null;
+  document.querySelectorAll('.i-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderPhone(name, null, false);
+  renderInfo(name, null, false);
+}
+
+// 초기 렌더
+renderPhone('shopping', null, false);
+renderInfo('shopping', null, false);
+</script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웰컴 챗봇 — 선호조사 & 꼬리표 세그먼트 요약</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif;
+  background: #111;
+  color: #fff;
+  min-height: 100vh;
+}
+.page {
+  min-width: 1100px;
+  padding: 36px 40px 48px;
+}
+
+/* ── 헤더 ── */
+.page-title { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+.page-sub { font-size: 13px; color: #666; margin-bottom: 32px; }
+
+/* ══════════════════════════
+   슬라이드 1: 작동 구조 + 꼬리표 체계
+══════════════════════════ */
+.slide { margin-bottom: 48px; }
+.slide-title {
+  font-size: 20px; font-weight: 900; margin-bottom: 4px;
+}
+.slide-sub { font-size: 13px; color: #666; margin-bottom: 24px; }
+
+.slide1-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* 작동 구조 흐름 */
+.flow-col { display: flex; flex-direction: column; gap: 0; }
+.flow-title { font-size: 14px; font-weight: 800; color: #FEE500; margin-bottom: 14px; }
+
+.flow-box {
+  background: #1C1C2E;
+  border: 1.5px solid #2E2E44;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13px; color: #ccc; line-height: 1.65;
+}
+.flow-box.highlight { border-color: #5C4A00; background: #1E1800; color: #FFD54F; }
+.flow-box.final { border-color: #1B3D1E; background: #0D1F0F; color: #81C784; }
+.flow-box b { font-weight: 700; color: #fff; }
+.flow-box .yellow { color: #FEE500; }
+.flow-box .green { color: #81C784; }
+
+.flow-arrow {
+  text-align: center;
+  font-size: 18px; color: #444;
+  padding: 4px 0; line-height: 1;
+}
+
+/* 꼬리표 체계 테이블 */
+.tag-col { display: flex; flex-direction: column; gap: 14px; }
+.tag-title { font-size: 14px; font-weight: 800; color: #FEE500; margin-bottom: 0; }
+
+.tag-table { width: 100%; border-collapse: collapse; }
+.tag-table th {
+  background: #1A1A2E;
+  font-size: 12px; font-weight: 700; color: #FEE500;
+  padding: 9px 14px; text-align: left;
+  border-bottom: 1px solid #2E2E44;
+}
+.tag-table td {
+  padding: 11px 14px;
+  font-size: 12px; color: #ccc;
+  border-bottom: 1px solid #1E1E2E;
+  vertical-align: top;
+  line-height: 1.6;
+}
+.tag-table tr:last-child td { border-bottom: none; }
+.tag-table td:first-child { font-weight: 800; color: #fff; white-space: nowrap; }
+.tag-table td:nth-child(2) { color: #FFD54F; }
+
+.core-value-box {
+  background: #0D1F0F;
+  border: 1.5px solid #1B3D1E;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 12px; color: #81C784; line-height: 1.75;
+}
+.core-value-box .cv-title { font-size: 12px; font-weight: 800; color: #4CAF50; margin-bottom: 6px; }
+
+/* ══════════════════════════
+   슬라이드 2: 업종별 챗봇 사례 (폰 4개 + 설명)
+══════════════════════════ */
+.slide2-phones {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+.slide2-phones::-webkit-scrollbar { height: 4px; }
+.slide2-phones::-webkit-scrollbar-track { background: #1A1A1A; }
+.slide2-phones::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+/* 각 업종 컬럼 */
+.industry-col {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.industry-label {
+  font-size: 13px; font-weight: 800;
+  padding: 6px 16px; border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* 폰 목업 — 최소 200px 보장 */
+.phone-wrap {
+  width: 210px;
+  background: #1C1C1E;
+  border-radius: 38px;
+  padding: 9px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.07);
+}
+.phone-screen {
+  border-radius: 30px;
+  overflow: hidden;
+  background: #B2C4D5;
+  display: flex; flex-direction: column;
+}
+
+/* 상태바 */
+.sb {
+  background: rgba(255,255,255,0.22);
+  padding: 7px 14px 2px;
+  display: flex; justify-content: space-between;
+  font-size: 10px; font-weight: 800; color: #111;
+  flex-shrink: 0;
+}
+
+/* 채팅 헤더 */
+.ch {
+  background: rgba(255,255,255,0.9);
+  padding: 6px 10px;
+  display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.ch-back { font-size: 14px; color: #111; font-weight: 300; }
+.ch-badge {
+  background: #FF3B30; color: #fff;
+  font-size: 8px; font-weight: 800;
+  width: 14px; height: 14px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.ch-name { flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #111; }
+.ch-name .v { font-size: 9px; color: #3182F6; }
+.ch-status { text-align: center; font-size: 9px; color: #1CC800; }
+.ch-icons { font-size: 13px; color: #111; display: flex; gap: 6px; }
+
+/* 채팅 바디 */
+.cb {
+  background: #B2C4D5;
+  padding: 8px 8px 6px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* 시스템 메시지 */
+.sys {
+  background: rgba(255,255,255,0.75);
+  border-radius: 7px; padding: 7px 9px;
+  font-size: 9px; color: #555; line-height: 1.55;
+}
+.sys b { font-weight: 700; color: #111; display: block; margin-bottom: 2px; }
+
+/* 메시지 행 */
+.mr { display: flex; align-items: flex-end; gap: 4px; }
+.av {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #FEE500;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 900; color: #111;
+  flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+}
+.bub {
+  max-width: 155px;
+  background: #fff;
+  border-radius: 3px 12px 12px 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.sn { font-size: 8.5px; color: #555; margin-bottom: 2px; }
+.ad-lbl { font-size: 7.5px; color: #aaa; padding: 6px 9px 0; }
+.btxt {
+  padding: 7px 9px;
+  font-size: 9.5px; line-height: 1.55; color: #222;
+}
+.btxt b { font-weight: 800; }
+.bq {
+  background: #F5F5F5;
+  margin: 0 7px 7px;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 9px; font-weight: 700; color: #333;
+}
+.bbtns {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 0 8px 8px;
+}
+.bbtn {
+  padding: 5px 9px; border-radius: 14px;
+  font-size: 9px; font-weight: 700;
+  border: 1.5px solid #ddd; background: #fff; color: #333;
+  white-space: nowrap;
+}
+.bbtn.sel { border-color: #FEE500; background: #FEE500; color: #111; }
+.mt { font-size: 8px; color: rgba(0,0,0,0.28); white-space: nowrap; margin-left: 2px; }
+
+/* 유저 말풍선 */
+.ur { display: flex; justify-content: flex-end; align-items: flex-end; gap: 3px; }
+.ubub {
+  background: #FEE500;
+  border-radius: 12px 12px 3px 12px;
+  padding: 6px 9px;
+  font-size: 9.5px; font-weight: 700; color: #111;
+}
+
+/* 꼬리표 태그 알림 */
+.tag-notif {
+  background: rgba(28,200,0,0.12);
+  border: 1px solid rgba(28,200,0,0.3);
+  border-radius: 8px; padding: 6px 8px;
+  font-size: 8.5px; color: #1CC800; line-height: 1.5;
+}
+.tag-notif b { font-weight: 800; }
+
+/* 채널 메뉴 + 입력바 */
+.cmb {
+  background: rgba(255,255,255,0.9);
+  padding: 7px; text-align: center;
+  font-size: 10px; font-weight: 600; color: #111;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+.ib {
+  background: rgba(255,255,255,0.97);
+  padding: 5px 9px 9px;
+  display: flex; align-items: center; gap: 5px;
+}
+.ib-plus { font-size: 14px; color: #888; }
+.ib-field {
+  flex: 1; background: #EBEBEB; border-radius: 14px;
+  padding: 5px 10px; font-size: 9px; color: #aaa;
+}
+
+/* 플로우 설명 박스 */
+.flow-desc {
+  width: 210px;
+  background: #1A1A2E;
+  border: 1.5px solid #2E2E44;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 11px; line-height: 1.65;
+}
+.fd-q {
+  font-size: 10px; color: #888;
+  background: #111;
+  border-radius: 6px; padding: 6px 8px;
+  margin-bottom: 8px;
+}
+.fd-q::before { content: '챗봇 Q  '; font-weight: 700; color: #555; }
+.fd-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.fd-btn {
+  padding: 4px 9px; border-radius: 12px;
+  font-size: 9.5px; font-weight: 700;
+  border: 1.5px solid #333; color: #888;
+}
+.fd-tag-label { font-size: 10px; font-weight: 800; margin-bottom: 4px; }
+.fd-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.fd-tag {
+  padding: 3px 8px; border-radius: 10px;
+  font-size: 9px; font-weight: 700;
+}
+.fd-usage {
+  font-size: 10px; color: #666;
+  border-top: 1px solid #1E1E2E;
+  padding-top: 7px; line-height: 1.6;
+}
+.fd-usage .u-hl { color: #aaa; }
+
+/* ── 하단 공통 원칙 박스 ── */
+.principle-box {
+  background: #1A1500;
+  border: 1.5px solid #3D3200;
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-size: 12px; color: #ccc; line-height: 1.8;
+  margin-top: 20px;
+}
+.principle-box b { color: #FEE500; font-weight: 800; }
+.principle-box .dot { color: #FEE500; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 슬라이드 1 ══ -->
+<div class="slide">
+  <div class="slide-title">선호조사 챗봇 — 고객이 스스로 남기는 "꼬리표(세그먼트)"</div>
+  <div class="slide-sub">웰컴·챗봇의 버튼 클릭 자체를 세그먼트 태깅으로 전환 — SDK·픽셀 없이 카카오 채널 안에서 타겟 자산 축적</div>
+
+  <div class="slide1-layout">
+
+    <!-- 작동 구조 -->
+    <div>
+      <div class="flow-title">작동 구조</div>
+      <div class="flow-col">
+        <div class="flow-box">
+          웰컴 메시지 / 챗봇에 선호조사 삽입<br>
+          <span style="color:#FEE500;">"어떤 소식이 궁금하세요?  [신메뉴] [할인] [이벤트]"</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box highlight">
+          버튼 클릭 = 세그먼트 꼬리표 자동 부여<br>
+          (응답 부담 없는 1탭 조사 — 설문 아님)
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box">
+          이후 챗봇 키워드 문의 · 메시지 클릭 이력으로<br>
+          꼬리표 자동 갱신 (관심사 최신화)
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box final">
+          정기 메시지 · 이탈케어 발송 시<br>
+          <span class="green">꼬리표 기반 타겟/소재 자동 매칭</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 꼬리표 체계 -->
+    <div class="tag-col">
+      <div class="tag-title">꼬리표 체계 (안)</div>
+      <table class="tag-table">
+        <thead>
+          <tr>
+            <th>분류</th>
+            <th>꼬리표 예시</th>
+            <th>수집 방법</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>관심사</td>
+            <td>신메뉴 / 할인 / 이벤트</td>
+            <td style="color:#888;">선호조사 버튼 · 챗봇 키워드</td>
+          </tr>
+          <tr>
+            <td>반응 강도</td>
+            <td>고관심 / 저관심 / 휴면</td>
+            <td style="color:#888;">열람·클릭 누적 로그</td>
+          </tr>
+          <tr>
+            <td>유입 경로</td>
+            <td>매장QR / 쿠폰 / 검색</td>
+            <td style="color:#888;">친구추가 경로 로그</td>
+          </tr>
+          <tr>
+            <td>생애 단계</td>
+            <td>신규 / 충성(VIP) / 이탈위험 / 복귀</td>
+            <td style="color:#888;">웰컴~이탈케어 트리거 결과</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="core-value-box">
+        <div class="cv-title">핵심 가치</div>
+        웰컴이 '발송의 시작점'이면서 동시에 '데이터 수집의 시작점'이 됨.<br>
+        꼬리표가 쌓일수록 정기·이탈케어의 타겟 정밀도가 자동으로 상승
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ 슬라이드 2 ══ -->
+<div class="slide">
+  <div class="slide-title">업종별 웰컴 챗봇 사례 — 질문 1개, 버튼 1탭으로 꼬리표 생성</div>
+  <div class="slide-sub">핵심 타겟 상위 업종(쇼핑 · 외식 · 병원 · 뷰티) 기준 — 업종 선택 시 질문 템플릿 자동 제공, 파트너는 수정만</div>
+
+  <!-- 폰 4개 가로 나열 -->
+  <div class="slide2-phones">
+
+    <!-- 쇼핑 -->
+    <div class="industry-col">
+      <div class="industry-label" style="background:rgba(249,168,37,0.15);color:#F9A825;border:1.5px solid rgba(249,168,37,0.3);">🛍 쇼핑</div>
+      <div class="phone-wrap">
+        <div class="phone-screen">
+          <div class="sb"><span>4:21</span><span>●●●</span></div>
+          <div class="ch">
+            <span class="ch-back">‹</span>
+            <div class="ch-badge">1</div>
+            <div style="flex:1;text-align:center;">
+              <div class="ch-name">카카오 <span class="v">✔</span></div>
+              <div class="ch-status">● 챗봇 채팅중</div>
+            </div>
+            <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+          </div>
+          <div class="cb">
+            <div class="sys"><b>카카오</b>'카카오' 채널을 추가해 주셔서 감사합니다.</div>
+            <div class="mr">
+              <div class="av">K</div>
+              <div>
+                <div class="sn">카카오</div>
+                <div class="bub">
+                  <div class="ad-lbl">(광고) 카카오</div>
+                  <div class="btxt">안녕하세요! 👋<br><b>카카오</b> 채널에 오신 걸 환영합니다!</div>
+                  <div class="bq">주로 어떤 소식을 받고 싶으세요?</div>
+                  <div class="bbtns">
+                    <div class="bbtn">신상품</div>
+                    <div class="bbtn sel">할인/특가</div>
+                    <div class="bbtn">재입고 알림</div>
+                  </div>
+                </div>
+              </div>
+              <span class="mt">4:21</span>
+            </div>
+            <div class="ur">
+              <span class="mt">4:21</span>
+              <div class="ubub">할인/특가</div>
+            </div>
+            <div class="tag-notif">🏷 꼬리표 자동 부여: <b>가격민감</b></div>
+          </div>
+          <div class="cmb">채널 메뉴 ∧</div>
+          <div class="ib"><span class="ib-plus">＋</span><div class="ib-field">챗봇에게 메시지 입력</div></div>
+        </div>
+      </div>
+      <div class="flow-desc">
+        <div class="fd-q">주로 어떤 소식을 받고 싶으세요?</div>
+        <div class="fd-btns">
+          <div class="fd-btn">신상품</div>
+          <div class="fd-btn" style="border-color:#F9A825;color:#F9A825;">할인/특가</div>
+          <div class="fd-btn">재입고 알림</div>
+        </div>
+        <div class="fd-tag-label" style="color:#F9A825;">꼬리표</div>
+        <div class="fd-tags">
+          <div class="fd-tag" style="background:rgba(249,168,37,0.15);border:1px solid rgba(249,168,37,0.3);color:#F9A825;">신상품관심</div>
+          <div class="fd-tag" style="background:rgba(249,168,37,0.15);border:1px solid rgba(249,168,37,0.3);color:#F9A825;">가격민감</div>
+          <div class="fd-tag" style="background:rgba(249,168,37,0.15);border:1px solid rgba(249,168,37,0.3);color:#F9A825;">재입고대기</div>
+        </div>
+        <div class="fd-usage">
+          <span class="u-hl">활용</span> 신상 출시 → [신상품]만 / 특가 → [가격민감]만 / 재입고 → 해당 상품 대기 고객만 타겟 발송
+        </div>
+      </div>
+    </div>
+
+    <!-- 외식/카페 -->
+    <div class="industry-col">
+      <div class="industry-label" style="background:rgba(102,187,106,0.15);color:#66BB6A;border:1.5px solid rgba(102,187,106,0.3);">🍽 외식 / 카페</div>
+      <div class="phone-wrap">
+        <div class="phone-screen">
+          <div class="sb"><span>4:21</span><span>●●●</span></div>
+          <div class="ch">
+            <span class="ch-back">‹</span>
+            <div class="ch-badge">1</div>
+            <div style="flex:1;text-align:center;">
+              <div class="ch-name">카카오 <span class="v">✔</span></div>
+              <div class="ch-status">● 챗봇 채팅중</div>
+            </div>
+            <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+          </div>
+          <div class="cb">
+            <div class="sys"><b>카카오</b>'카카오' 채널을 추가해 주셔서 감사합니다.</div>
+            <div class="mr">
+              <div class="av">K</div>
+              <div>
+                <div class="sn">카카오</div>
+                <div class="bub">
+                  <div class="ad-lbl">(광고) 카카오</div>
+                  <div class="btxt">안녕하세요! 👋<br><b>카카오</b> 채널에 오신 걸 환영합니다!</div>
+                  <div class="bq">어떤 메뉴를 좋아하세요? 주로 언제 방문하세요?</div>
+                  <div class="bbtns">
+                    <div class="bbtn sel">커피/디저트</div>
+                    <div class="bbtn">식사</div>
+                    <div class="bbtn">평일점심</div>
+                    <div class="bbtn">저녁/주말</div>
+                  </div>
+                </div>
+              </div>
+              <span class="mt">4:21</span>
+            </div>
+            <div class="ur">
+              <span class="mt">4:21</span>
+              <div class="ubub">커피/디저트</div>
+            </div>
+            <div class="tag-notif">🏷 꼬리표 자동 부여: <b>커피·디저트선호</b></div>
+          </div>
+          <div class="cmb">채널 메뉴 ∧</div>
+          <div class="ib"><span class="ib-plus">＋</span><div class="ib-field">챗봇에게 메시지 입력</div></div>
+        </div>
+      </div>
+      <div class="flow-desc">
+        <div class="fd-q">어떤 메뉴를 좋아하세요? 주로 언제 방문하세요?</div>
+        <div class="fd-btns">
+          <div class="fd-btn" style="border-color:#66BB6A;color:#66BB6A;">커피/디저트</div>
+          <div class="fd-btn">식사</div>
+          <div class="fd-btn">평일점심</div>
+          <div class="fd-btn">저녁/주말</div>
+        </div>
+        <div class="fd-tag-label" style="color:#66BB6A;">꼬리표</div>
+        <div class="fd-tags">
+          <div class="fd-tag" style="background:rgba(102,187,106,0.15);border:1px solid rgba(102,187,106,0.3);color:#66BB6A;">메뉴선호</div>
+          <div class="fd-tag" style="background:rgba(102,187,106,0.15);border:1px solid rgba(102,187,106,0.3);color:#66BB6A;">방문시간대</div>
+        </div>
+        <div class="fd-usage">
+          <span class="u-hl">활용</span> 신메뉴 알림 → 선호 메뉴 꼬리표로, 해피아워·런치 쿠폰 → 시간대 꼬리표로 매칭 발송
+        </div>
+      </div>
+    </div>
+
+    <!-- 병원 -->
+    <div class="industry-col">
+      <div class="industry-label" style="background:rgba(66,165,245,0.15);color:#42A5F5;border:1.5px solid rgba(66,165,245,0.3);">🏥 병원</div>
+      <div class="phone-wrap">
+        <div class="phone-screen">
+          <div class="sb"><span>4:21</span><span>●●●</span></div>
+          <div class="ch">
+            <span class="ch-back">‹</span>
+            <div class="ch-badge">1</div>
+            <div style="flex:1;text-align:center;">
+              <div class="ch-name">카카오 <span class="v">✔</span></div>
+              <div class="ch-status">● 챗봇 채팅중</div>
+            </div>
+            <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+          </div>
+          <div class="cb">
+            <div class="sys"><b>카카오</b>'카카오' 채널을 추가해 주셔서 감사합니다.</div>
+            <div class="mr">
+              <div class="av">K</div>
+              <div>
+                <div class="sn">카카오</div>
+                <div class="bub">
+                  <div class="ad-lbl">(광고) 카카오</div>
+                  <div class="btxt">안녕하세요! 👋<br><b>카카오</b> 채널에 오신 걸 환영합니다!</div>
+                  <div class="bq">관심 있는 건강 정보를 골라주세요</div>
+                  <div class="bbtns">
+                    <div class="bbtn sel">건강검진</div>
+                    <div class="bbtn">예방접종</div>
+                    <div class="bbtn">진료/시술 안내</div>
+                  </div>
+                </div>
+              </div>
+              <span class="mt">4:21</span>
+            </div>
+            <div class="ur">
+              <span class="mt">4:21</span>
+              <div class="ubub">건강검진</div>
+            </div>
+            <div class="tag-notif">🏷 꼬리표 자동 부여: <b>검진관심</b></div>
+          </div>
+          <div class="cmb">채널 메뉴 ∧</div>
+          <div class="ib"><span class="ib-plus">＋</span><div class="ib-field">챗봇에게 메시지 입력</div></div>
+        </div>
+      </div>
+      <div class="flow-desc">
+        <div class="fd-q">관심 있는 건강 정보를 골라주세요</div>
+        <div class="fd-btns">
+          <div class="fd-btn" style="border-color:#42A5F5;color:#42A5F5;">건강검진</div>
+          <div class="fd-btn">예방접종</div>
+          <div class="fd-btn">진료/시술 안내</div>
+        </div>
+        <div class="fd-tag-label" style="color:#42A5F5;">꼬리표</div>
+        <div class="fd-tags">
+          <div class="fd-tag" style="background:rgba(66,165,245,0.15);border:1px solid rgba(66,165,245,0.3);color:#42A5F5;">검진관심</div>
+          <div class="fd-tag" style="background:rgba(66,165,245,0.15);border:1px solid rgba(66,165,245,0.3);color:#42A5F5;">접종시기</div>
+          <div class="fd-tag" style="background:rgba(66,165,245,0.15);border:1px solid rgba(66,165,245,0.3);color:#42A5F5;">일반</div>
+        </div>
+        <div class="fd-usage">
+          <span class="u-hl">활용</span> 검진 시즌 리마인더, 접종 시기 알림을 꼬리표별 발송 — 민감정보가 아닌 '관심사' 수준으로만 수집
+        </div>
+      </div>
+    </div>
+
+    <!-- 뷰티/미용 -->
+    <div class="industry-col">
+      <div class="industry-label" style="background:rgba(171,71,188,0.15);color:#AB47BC;border:1.5px solid rgba(171,71,188,0.3);">💄 뷰티 / 미용</div>
+      <div class="phone-wrap">
+        <div class="phone-screen">
+          <div class="sb"><span>4:21</span><span>●●●</span></div>
+          <div class="ch">
+            <span class="ch-back">‹</span>
+            <div class="ch-badge">1</div>
+            <div style="flex:1;text-align:center;">
+              <div class="ch-name">카카오 <span class="v">✔</span></div>
+              <div class="ch-status">● 챗봇 채팅중</div>
+            </div>
+            <div class="ch-icons"><span>🔍</span><span>≡</span></div>
+          </div>
+          <div class="cb">
+            <div class="sys"><b>카카오</b>'카카오' 채널을 추가해 주셔서 감사합니다.</div>
+            <div class="mr">
+              <div class="av">K</div>
+              <div>
+                <div class="sn">카카오</div>
+                <div class="bub">
+                  <div class="ad-lbl">(광고) 카카오</div>
+                  <div class="btxt">안녕하세요! 👋<br><b>카카오</b> 채널에 오신 걸 환영합니다!</div>
+                  <div class="bq">어떤 케어에 관심 있으세요? 방문 주기는요?</div>
+                  <div class="bbtns">
+                    <div class="bbtn">헤어</div>
+                    <div class="bbtn sel">네일</div>
+                    <div class="bbtn">피부관리</div>
+                    <div class="bbtn">4~6주</div>
+                  </div>
+                </div>
+              </div>
+              <span class="mt">4:21</span>
+            </div>
+            <div class="ur">
+              <span class="mt">4:21</span>
+              <div class="ubub">네일</div>
+            </div>
+            <div class="tag-notif">🏷 꼬리표 자동 부여: <b>네일관심</b></div>
+          </div>
+          <div class="cmb">채널 메뉴 ∧</div>
+          <div class="ib"><span class="ib-plus">＋</span><div class="ib-field">챗봇에게 메시지 입력</div></div>
+        </div>
+      </div>
+      <div class="flow-desc">
+        <div class="fd-q">어떤 케어에 관심 있으세요? 방문 주기는 어느 정도세요?</div>
+        <div class="fd-btns">
+          <div class="fd-btn">헤어</div>
+          <div class="fd-btn" style="border-color:#AB47BC;color:#AB47BC;">네일</div>
+          <div class="fd-btn">피부관리</div>
+          <div class="fd-btn">4~6주</div>
+        </div>
+        <div class="fd-tag-label" style="color:#AB47BC;">꼬리표</div>
+        <div class="fd-tags">
+          <div class="fd-tag" style="background:rgba(171,71,188,0.15);border:1px solid rgba(171,71,188,0.3);color:#AB47BC;">시술관심사</div>
+          <div class="fd-tag" style="background:rgba(171,71,188,0.15);border:1px solid rgba(171,71,188,0.3);color:#AB47BC;">재방문주기</div>
+        </div>
+        <div class="fd-usage">
+          <span class="u-hl">활용</span> 관심 시술 이벤트 우선 발송 + 재방문 주기 도래 시점에 예약 리마인더 자동 발송
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /slide2-phones -->
+
+  <!-- 하단 공통 원칙 -->
+  <div class="principle-box">
+    <span class="dot">●</span>공통 설계 원칙: 질문은 <b>1~2개</b> · 버튼 최대 <b>4개(1탭 응답)</b> · 응답 시 소액 혜택 연결로 응답률 확보
+    &nbsp;·&nbsp; <b style="color:#FF6B35;">미응답 고객</b>은 이후 클릭 로그로 꼬리표 자동 보완
+  </div>
+
+</div><!-- /slide2 -->
+
+</div><!-- /page -->
+</body>
+</html>
