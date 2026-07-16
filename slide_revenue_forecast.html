@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Native CRM 기대매출 시뮬레이션</title>
+<style>
+:root {
+  --surface:      #111111;
+  --surface-card: #1A1A2E;
+  --surface-inner:#14142A;
+  --ink-1:  #ffffff;
+  --ink-2:  #aaaaaa;
+  --ink-3:  #666666;
+  --s-welcome:  #FEE500;
+  --s-churn:    #FF6B35;
+  --s-regular:  #3182F6;
+  --accent:     #FF8C00;
+  --border:      rgba(255,255,255,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
+  background: var(--surface);
+  color: var(--ink-1);
+  min-height: 100vh;
+  padding: 40px 48px 52px;
+}
+.page-title { font-size: 24px; font-weight: 900; letter-spacing:-0.3px; margin-bottom: 6px; }
+.page-sub { font-size: 13px; color: var(--ink-3); margin-bottom: 32px; }
+
+/* 페이즈 라벨 */
+.phase-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px;
+}
+.phase-label .pill {
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 8px;
+}
+
+/* 현재 블록 */
+.current-block {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 24px;
+}
+.rev-table { width: 100%; border-collapse: collapse; }
+.rev-table th {
+  background: var(--surface-inner); font-size: 12px; font-weight: 700;
+  color: var(--ink-3); padding: 9px 16px; text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.rev-table th:nth-child(2) { text-align: left; }
+.rev-table td {
+  padding: 11px 16px; font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle; line-height: 1.5;
+}
+.rev-table tr:last-child td { border-bottom: none; }
+.rev-table td:first-child { text-align: center; font-weight: 800; font-size: 13px; width: 100px; }
+.rev-table td:nth-child(3) { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rev-table td:nth-child(4) { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.formula-text { color: var(--ink-3); font-size: 11px; }
+.formula-text b { color: var(--ink-2); font-weight: 600; }
+.total-row td { background: rgba(255,255,255,0.04); border-top: 1px solid rgba(255,255,255,0.1) !important; font-size: 13px; font-weight: 800; }
+.td-welcome { color: var(--s-welcome); }
+.td-churn   { color: var(--s-churn); }
+.td-regular { color: var(--s-regular); }
+
+/* KPI 타일 */
+.kpi-row { display: flex; gap: 10px; margin-top: 14px; }
+.kpi-tile {
+  flex: 1; background: var(--surface-inner);
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+}
+.kt-label { font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+.kt-val   { font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.kt-sub   { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.kpi-tile.total .kt-val { color: #fff; }
+.kpi-tile.welcome .kt-val { color: var(--s-welcome); }
+.kpi-tile.churn   .kt-val { color: var(--s-churn); }
+.kpi-tile.regular .kt-val { color: var(--s-regular); }
+
+/* 커넥터 */
+.connector { display: flex; align-items: center; gap: 16px; padding: 18px 0 16px; }
+.conn-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,140,0,0.4), transparent); }
+.conn-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,140,0,0.1); border: 1px solid rgba(255,140,0,0.35);
+  border-radius: 20px; padding: 7px 18px;
+  font-size: 12px; font-weight: 800; color: var(--accent); white-space: nowrap;
+}
+
+/* 확장 블록 */
+.expand-block {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px 24px;
+}
+.expand-layout { display: grid; grid-template-columns: 1fr 280px; gap: 28px; align-items: start; }
+
+/* 차트 */
+.chart-area { display: flex; flex-direction: column; }
+.chart-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.chart-title { font-size: 13px; font-weight: 800; color: var(--ink-2); }
+.chart-legend { display: flex; gap: 14px; margin-left: auto; }
+.cl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-3); }
+.cl-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+svg.bar-chart { overflow: visible; display: block; }
+
+/* 유입 경로 */
+.inflow-title { font-size: 13px; font-weight: 800; color: var(--ink-2); margin-bottom: 12px; }
+.inflow-cards { display: flex; flex-direction: column; gap: 8px; }
+.inflow-card {
+  background: var(--surface-inner); border: 1px solid var(--border);
+  border-left: 3px solid; border-radius: 8px;
+  padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px;
+}
+.ic-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.ic-body h4 { font-size: 12px; font-weight: 800; margin-bottom: 3px; }
+.ic-body p  { font-size: 11px; color: var(--ink-3); line-height: 1.5; }
+.inflow-card:nth-child(1) { border-left-color: #FEE500; }
+.inflow-card:nth-child(1) .ic-num { background: rgba(254,229,0,0.15); color: #FEE500; }
+.inflow-card:nth-child(2) { border-left-color: var(--s-churn); }
+.inflow-card:nth-child(2) .ic-num { background: rgba(255,107,53,0.15); color: var(--s-churn); }
+.inflow-card:nth-child(3) { border-left-color: var(--s-regular); }
+.inflow-card:nth-child(3) .ic-num { background: rgba(49,130,246,0.15); color: var(--s-regular); }
+
+.loop-box {
+  margin-top: 12px;
+  background: rgba(255,140,0,0.05); border: 1px solid rgba(255,140,0,0.2);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 11px; color: var(--ink-3); line-height: 1.7;
+}
+.loop-box b { color: var(--accent); }
+
+/* 잠재력 배너 */
+.potential-banner {
+  margin-top: 18px;
+  background: linear-gradient(135deg, rgba(255,140,0,0.12) 0%, rgba(255,107,53,0.08) 100%);
+  border: 1px solid rgba(255,140,0,0.3); border-radius: 12px;
+  padding: 14px 20px; display: flex; align-items: center; gap: 20px;
+}
+.pb-main { flex: 1; }
+.pb-main h3 { font-size: 13px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+.pb-main p  { font-size: 12px; color: var(--ink-3); line-height: 1.6; }
+.pb-kpi { text-align: right; flex-shrink: 0; }
+.pk-label { font-size: 11px; color: var(--ink-3); margin-bottom: 2px; }
+.pk-val { font-size: 28px; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; }
+.pk-sub { font-size: 11px; color: var(--ink-3); }
+.mult-badge {
+  background: rgba(255,140,0,0.2); border: 1px solid rgba(255,140,0,0.4);
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 13px; font-weight: 900; color: var(--accent); white-space: nowrap;
+}
+
+/* 툴팁 */
+.tooltip {
+  position: fixed; background: #222230;
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 10px 14px; font-size: 12px; color: #fff; line-height: 1.7;
+  pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  z-index: 100; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.tooltip.visible { opacity: 1; }
+.tt-row { display: flex; justify-content: space-between; gap: 16px; }
+.tt-label { color: #888; }
+.tt-val { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Native CRM 기대매출 시뮬레이션 (유상 채널 기준)</div>
+<div class="page-sub">현재 유상채널 3.3만개 기준 기대매출 → 성과 홍보를 통한 신규채널 유치 시 확장 잠재력</div>
+
+<!-- PHASE 1 -->
+<div class="phase-label"><span class="pill">PHASE 1</span>현재 기대매출 기준 — 월 유상 메시지 발송 채널 3.3만개 대상</div>
+<div class="current-block">
+  <table class="rev-table">
+    <thead>
+      <tr>
+        <th>구분</th>
+        <th>산식(월)</th>
+        <th>매출액(월)</th>
+        <th>매출액(1년)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="td-welcome">웰컴트리거</td>
+        <td><span class="formula-text">유상채널 <b>(월 발송 895만 × 15원 × 30% 활성)</b> + 신규전환 <b>(월 발송 1,245만 × 15원 × 20% 활성)</b></span></td>
+        <td class="td-welcome">0.8억</td>
+        <td class="td-welcome">9.6억</td>
+      </tr>
+      <tr>
+        <td class="td-churn">이탈케어</td>
+        <td><span class="formula-text">이탈케어 대상 <b>941만명 × 15원 × 30% 활성화</b></span></td>
+        <td class="td-churn">0.42억</td>
+        <td class="td-churn">5억</td>
+      </tr>
+      <tr>
+        <td class="td-regular">정기메시지</td>
+        <td><span class="formula-text">고정일자 <b>(273만명 × 15원 × 30% 활성)</b> + 행동기반 <b>(536만명 × 15원 × 30% 활성)</b></span></td>
+        <td class="td-regular">0.36억</td>
+        <td class="td-regular">4.3억</td>
+      </tr>
+      <tr class="total-row">
+        <td style="color:#fff;">합계</td>
+        <td></td>
+        <td style="color:#fff;">1.58억</td>
+        <td style="color:#fff;">18.9억</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="kpi-row">
+    <div class="kpi-tile total">
+      <div class="kt-label">연간 총 기대매출</div>
+      <div class="kt-val">18.9억</div>
+      <div class="kt-sub">유상 발송 채널 3.3만개 기준</div>
+    </div>
+    <div class="kpi-tile welcome">
+      <div class="kt-label">웰컴트리거</div>
+      <div class="kt-val">9.6억</div>
+      <div class="kt-sub">연간 / 전체 50.8%</div>
+    </div>
+    <div class="kpi-tile churn">
+      <div class="kt-label">이탈케어</div>
+      <div class="kt-val">5억</div>
+      <div class="kt-sub">연간 / 전체 26.5%</div>
+    </div>
+    <div class="kpi-tile regular">
+      <div class="kt-label">정기메시지</div>
+      <div class="kt-val">4.3억</div>
+      <div class="kt-sub">연간 / 전체 22.7%</div>
+    </div>
+  </div>
+</div>
+
+<!-- 커넥터 -->
+<div class="connector">
+  <div class="conn-line"></div>
+  <div class="conn-badge">▼ 성과 홍보를 통한 신규채널 유치 → 발송채널 확대</div>
+  <div class="conn-line"></div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase-label"><span class="pill">PHASE 2</span>신규채널 유치 시나리오별 기대매출 확장</div>
+<div class="expand-block">
+  <div class="expand-layout">
+
+    <div class="chart-area">
+      <div class="chart-title-row">
+        <span class="chart-title">채널 활성화 규모별 연간 기대매출 (억원)</span>
+        <div class="chart-legend">
+          <div class="cl-item"><div class="cl-dot" style="background:var(--s-welcome)"></div>웰컴트리거</div>
+          <div class="cl-item"><div class="cl-dot" style="background:var(--s-churn)"></div>이탈케어</div>
+          <div class="cl-item"><div class="cl-dot" style="background:var(--s-regular)"></div>정기메시지</div>
+        </div>
+      </div>
+      <svg class="bar-chart" id="barChart" viewBox="0 0 660 240" style="width:100%;max-width:660px;"></svg>
+    </div>
+
+    <div>
+      <div class="inflow-title">📢 신규채널 유치 경로</div>
+      <div class="inflow-cards">
+        <div class="inflow-card">
+          <div class="ic-num">1</div>
+          <div class="ic-body">
+            <h4>CRM 성과 리포트 공유</h4>
+            <p>기존 채널의 웰컴·이탈케어 성과 수치를 미발송 채널에 공유해 CRM 전환 유도</p>
+          </div>
+        </div>
+        <div class="inflow-card">
+          <div class="ic-num">2</div>
+          <div class="ic-body">
+            <h4>월렛보유 미발송 채널 전환</h4>
+            <p>월렛 보유 중 미발송 6.9만 채널 대상 카비센 팝업·알림으로 CRM 온보딩</p>
+          </div>
+        </div>
+        <div class="inflow-card">
+          <div class="ic-num">3</div>
+          <div class="ic-body">
+            <h4>신규 비즈채널 CRM 온보딩</h4>
+            <p>채널 개설 즉시 웰컴메시지 세팅 화면 유도 — 성과 체감 → 발송 루틴화</p>
+          </div>
+        </div>
+      </div>
+      <div class="loop-box">
+        <b>선순환 구조</b><br>
+        CRM 성과 → 파트너 성공사례 → 신규채널 유입<br>
+        → 발송 증가 → 더 많은 데이터 → 더 높은 성과 → 반복
+      </div>
+    </div>
+
+  </div>
+
+  <div class="potential-banner">
+    <div class="pb-main">
+      <h3>최대 확장 시 연간 기대매출</h3>
+      <p>현재 미발송 채널 중 보수적 20만개 전환 가정 + 기존 유상채널 성과 합산 기준<br>
+         신규채널 유치 비용 대비 구독형 반복 매출 구조 — 채널 수 증가가 곧 매출 증가</p>
+    </div>
+    <div class="mult-badge">현재 대비 최대 6× ↑</div>
+    <div class="pb-kpi">
+      <div class="pk-label">20만 채널 전환 시</div>
+      <div class="pk-val">114.5억</div>
+      <div class="pk-sub">연간 기대매출</div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-row"><span class="tt-label">구분</span><span class="tt-val" id="tt-name">—</span></div>
+  <div class="tt-row"><span class="tt-label">웰컴트리거</span><span class="tt-val" id="tt-w" style="color:var(--s-welcome)">—</span></div>
+  <div class="tt-row"><span class="tt-label">이탈케어</span><span class="tt-val" id="tt-c" style="color:var(--s-churn)">—</span></div>
+  <div class="tt-row"><span class="tt-label">정기메시지</span><span class="tt-val" id="tt-r" style="color:var(--s-regular)">—</span></div>
+  <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:6px;padding-top:6px;">
+    <div class="tt-row"><span class="tt-label">합계</span><span class="tt-val" id="tt-total">—</span></div>
+  </div>
+</div>
+
+<script>
+const scenarios = [
+  { label:'현재',        sublabel:'유상채널 3.3만', tag:'',       w:9.6,  c:5.0,  r:4.3,  dim:true  },
+  { label:'확장 1단계', sublabel:'5.4만 채널',    tag:'1단계',   w:15.7, c:8.2,  r:7.0              },
+  { label:'확장 2단계', sublabel:'10만 채널',     tag:'2단계',   w:29.1, c:15.2, r:13.0             },
+  { label:'확장 3단계', sublabel:'20만 채널',     tag:'3단계',   w:58.2, c:30.3, r:26.0             },
+];
+
+const PAD_L=100, PAD_R=100, PAD_T=18, PAD_B=22;
+const VW=660, VH=240;
+const CW=VW-PAD_L-PAD_R, CH=VH-PAD_T-PAD_B;
+const BAR=36, N=scenarios.length;
+const GAP=(CH-N*BAR)/(N+1);
+const MAX=125, SC=CW/MAX;
+const CW_='#FEE500', CC_='#FF6B35', CR_='#3182F6';
+
+const tip=document.getElementById('tooltip');
+const svg=document.getElementById('barChart');
+let h='';
+
+// 그리드 & X축
+[0,30,60,90,114.5].forEach(v=>{
+  const x=PAD_L+v*SC;
+  if(v>0) h+=`<line x1="${x.toFixed(1)}" y1="${PAD_T}" x2="${x.toFixed(1)}" y2="${PAD_T+CH}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+  const lbl=v===114.5?'114.5억':v===0?'0':v+'억';
+  h+=`<text x="${x.toFixed(1)}" y="${VH-4}" text-anchor="middle" font-size="10" fill="#555" font-family="system-ui,sans-serif">${lbl}</text>`;
+});
+h+=`<line x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${PAD_T+CH}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
+
+// 현재 기준선 점선
+const bx=(PAD_L+18.9*SC).toFixed(1);
+h+=`<line x1="${bx}" y1="${PAD_T}" x2="${bx}" y2="${PAD_T+CH}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="4,3"/>`;
+h+=`<text x="${bx}" y="${PAD_T-4}" text-anchor="middle" font-size="9" fill="#555" font-family="system-ui,sans-serif">현재 18.9억</text>`;
+
+scenarios.forEach((s,i)=>{
+  const y=PAD_T+GAP*(i+1)+BAR*i;
+  const tot=s.w+s.c+s.r;
+  const dim=s.dim;
+
+  // Y 레이블
+  h+=`<text x="${PAD_L-8}" y="${y+BAR/2-4}" text-anchor="end" font-size="12" font-weight="700" fill="${dim?'#666':'#ddd'}" font-family="system-ui,sans-serif">${s.label}</text>`;
+  h+=`<text x="${PAD_L-8}" y="${y+BAR/2+9}" text-anchor="end" font-size="10" fill="#444" font-family="system-ui,sans-serif">${s.sublabel}</text>`;
+
+  const wW=s.w*SC;
+  const cX=PAD_L+wW+2, cW=s.c*SC;
+  const rX=cX+cW+2, rW=s.r*SC;
+
+  // 현재 행은 반투명 처리
+  const op=dim?' opacity="0.45"':'';
+  h+=`<rect class="seg" data-i="${i}" x="${PAD_L}" y="${y}" width="${wW.toFixed(1)}" height="${BAR}" fill="${CW_}" rx="3"${op} style="cursor:pointer"/>`;
+  h+=`<rect class="seg" data-i="${i}" x="${cX.toFixed(1)}" y="${y}" width="${cW.toFixed(1)}" height="${BAR}" fill="${CC_}" rx="3"${op} style="cursor:pointer"/>`;
+  h+=`<rect class="seg" data-i="${i}" x="${rX.toFixed(1)}" y="${y}" width="${rW.toFixed(1)}" height="${BAR}" fill="${CR_}" rx="3"${op} style="cursor:pointer"/>`;
+
+  // 합계 레이블
+  const tx=(PAD_L+tot*SC+8).toFixed(1);
+  const mult=i>0?` ×${(tot/18.9).toFixed(1)}`:'';
+  h+=`<text x="${tx}" y="${y+BAR/2+5}" text-anchor="start" font-size="13" font-weight="900" fill="${dim?'#555':'#fff'}" font-family="system-ui,sans-serif">${tot.toFixed(1)}억${mult}</text>`;
+
+  // 단계 태그
+  if(s.tag){
+    h+=`<text x="${PAD_L+6}" y="${y+BAR/2+4}" text-anchor="start" font-size="8.5" font-weight="800" fill="rgba(0,0,0,0.38)" font-family="system-ui,sans-serif">${s.tag}</text>`;
+  }
+});
+
+svg.innerHTML=h;
+
+document.querySelectorAll('.seg').forEach(el=>{
+  el.addEventListener('mouseenter',function(e){
+    const s=scenarios[+this.dataset.i];
+    const tot=s.w+s.c+s.r;
+    document.getElementById('tt-name').textContent=s.label+' ('+s.sublabel+')';
+    document.getElementById('tt-w').textContent=s.w.toFixed(1)+'억';
+    document.getElementById('tt-c').textContent=s.c.toFixed(1)+'억';
+    document.getElementById('tt-r').textContent=s.r.toFixed(1)+'억';
+    document.getElementById('tt-total').textContent=tot.toFixed(1)+'억';
+    tip.classList.add('visible');
+  });
+  el.addEventListener('mousemove',function(e){
+    tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY-10)+'px';
+  });
+  el.addEventListener('mouseleave',()=>tip.classList.remove('visible'));
+});
+</script>
+</body>
+</html>
